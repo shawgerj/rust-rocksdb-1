@@ -1057,6 +1057,20 @@ void crocksdb_write(crocksdb_t* db, const crocksdb_writeoptions_t* options,
                     crocksdb_writebatch_t* batch, char** errptr) {
   SaveError(errptr, db->rep->Write(options->rep, &batch->rep));
 }
+  
+size_t* crocksdb_write_wotr(crocksdb_t* db, const crocksdb_writeoptions_t* options,
+                          crocksdb_writebatch_t* batch, size_t *lenoffsets,
+                          char** errptr) {
+  std::vector<size_t> offsets;
+  SaveError(errptr, db->rep->Write(options->rep, &batch->rep, &offsets));
+
+  *lenoffsets = offsets.size();
+  size_t* offsetarray = static_cast<size_t*>(malloc(sizeof(size_t) * offsets.size()));
+  for (size_t i = 0; i < offsets.size(); i++) {
+    offsetarray[i] = offsets[i];
+  }
+  return offsetarray;
+}
 
 void crocksdb_write_multi_batch(crocksdb_t* db,
                                 const crocksdb_writeoptions_t* options,

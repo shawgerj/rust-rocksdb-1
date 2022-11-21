@@ -801,6 +801,26 @@ impl DB {
         Ok(())
     }
 
+    pub fn write_wotr(&self, batch: &WriteBatch, writeopts: &WriteOptions) -> Result<Vec<size_t>> {
+        let mut offsets: Vec<size_t> = vec![];
+        unsafe {
+            let mut lenoffsets: size_t = 0;
+            let list = ffi_try!(crocksdb_write_wotr(
+                self.inner,
+                writeopts.inner,
+                batch.inner,
+                &mut lenoffsets
+            ));
+            let list_offsets = slice::from_raw_parts(list, lenoffsets);
+            for &offset in list_offsets {
+                offsets.push(offset);
+            }
+            crocksdb_ffi::crocksdb_write_wotr_destroy(list);
+        }
+
+        Ok(offsets)
+    }
+
     pub fn multi_batch_write(
         &self,
         batches: &[WriteBatch],
