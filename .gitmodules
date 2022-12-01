@@ -1,9 +1,11 @@
-[submodule "rocksdb"]
-	path = librocksdb_sys/rocksdb
-	url = https://github.com/tikv/rocksdb.git
-	branch = tikv-5.4
-
 [submodule "titan"]
 	path = librocksdb_sys/libtitan_sys/titan
 	url = https://github.com/tikv/titan.git
 	branch = tikv-5.2
+[submodule "rocksdb"]
+        path = librocksdb_sys/rocksdb
+	url = https://github.com/shawgerj/rocksdb-1.git
+	branch = boulevardier
+[submodule "librocksdb_sys/wotr"]
+	path = librocksdb_sys/wotr
+	url = https://github.com/shawgerj/wotr.git

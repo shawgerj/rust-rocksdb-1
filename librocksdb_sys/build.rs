@@ -72,6 +72,7 @@ fn config_binding_path() {
 fn main() {
     println!("cargo:rerun-if-env-changed=UPDATE_BIND");
 
+    let mut wotrbuild = build_wotr();
     let mut build = build_rocksdb();
 
     build.cpp(true).file("crocksdb/c.cc");
@@ -81,6 +82,14 @@ fn main() {
     }
     link_cpp(&mut build);
     build.warnings(false).compile("libcrocksdb.a");
+}
+
+fn build_wotr() {
+    let dst = Config::new("wotr")
+        .build_target("wotr")
+        .build();
+    println!("cargo:rustc-link-search=native={}", dst.display());
+    println!("cargo:rustc-link-lib=static=wotr");
 }
 
 fn link_cpp(build: &mut Build) {
@@ -142,6 +151,7 @@ fn build_rocksdb() -> Build {
     if cfg!(feature = "sse") {
         cfg.define("FORCE_SSE42", "ON");
     }
+    
     // RocksDB cmake script expect libz.a being under ${DEP_Z_ROOT}/lib, but libz-sys crate put it
     // under ${DEP_Z_ROOT}/build. Append the path to CMAKE_PREFIX_PATH to get around it.
     env::set_var("CMAKE_PREFIX_PATH", {
@@ -152,6 +162,7 @@ fn build_rocksdb() -> Build {
             zlib_path
         }
     });
+
     let dst = cfg
         .define("WITH_GFLAGS", "OFF")
         .register_dep("Z")
@@ -195,6 +206,7 @@ fn build_rocksdb() -> Build {
     build.include(cur_dir.join("rocksdb"));
     build.include(cur_dir.join("libtitan_sys").join("titan").join("include"));
     build.include(cur_dir.join("libtitan_sys").join("titan"));
+    build.include(cur_dir.join("wotr"));
 
     // Adding rocksdb specific compile macros.
     // TODO: should make sure crocksdb compile options is the same as rocksdb and titan.

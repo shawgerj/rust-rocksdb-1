@@ -24,6 +24,7 @@ fn main() {
     }
     let dst = cfg
         .define("ROCKSDB_DIR", cur_dir.join("..").join("rocksdb"))
+        .define("WOTR_DIR", cur_dir.join("..").join("wotr"))
         .define("WITH_TITAN_TESTS", "OFF")
         .define("WITH_TITAN_TOOLS", "OFF")
         .register_dep("Z")
