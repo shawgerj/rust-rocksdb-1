@@ -209,8 +209,8 @@ fn configure_common_rocksdb_args(cfg: &mut Config, name: &str) {
         .register_dep("ZSTD")
         .define("WITH_ZSTD", "ON")
         .register_dep("SNAPPY")
-        .define("WITH_SNAPPY", "ON")
-        .configure_arg("-Wno-dev");
+        .define("WITH_SNAPPY", "ON");
+//        .configure_arg("-Wno-dev");
 }
 
 fn link_cpp(build: &mut Build) {
