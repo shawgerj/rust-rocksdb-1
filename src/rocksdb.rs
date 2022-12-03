@@ -801,7 +801,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn write_wotr(&self, batch: &WriteBatch, writeopts: &WriteOptions) -> Result<Vec<size_t>> {
+    pub fn write_wotr(&self, batch: &WriteBatch, writeopts: &WriteOptions) -> Result<Vec<size_t>, String> {
         let mut offsets: Vec<size_t> = vec![];
         unsafe {
             let mut lenoffsets: size_t = 0;
@@ -848,6 +848,22 @@ impl DB {
         let mut wo = WriteOptions::new();
         wo.disable_wal(true);
         self.write_opt(batch, &wo)
+    }
+
+    pub fn get_external(&self, key: &[u8], readopts: &ReadOptions) ->Result<Option<DBVector>, String> {
+        unsafe {
+            let val = ffi_try!(crocksdb_get_external(
+                self.inner,
+                readopts.get_inner(),
+                key.as_ptr(),
+                key.len() as size_t
+            ));
+            if val.is_null() {
+                Ok(None)
+            } else {
+                Ok(Some(DBVector::from_pinned_slice(val)))
+            }
+        }
     }
 
     pub fn get_opt(&self, key: &[u8], readopts: &ReadOptions) -> Result<Option<DBVector>, String> {

@@ -1,0 +1,5 @@
+make a c interface to wotr and compile it like crocksdb
+
+generate a static lib in the same way
+
+maybe this will work?

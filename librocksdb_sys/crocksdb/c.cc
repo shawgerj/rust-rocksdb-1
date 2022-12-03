@@ -57,6 +57,7 @@
 #include "titan/options.h"
 #include "util/coding.h"
 #include "util/file_reader_writer.h"
+#include "wotr.h"
 
 #if !defined(ROCKSDB_MAJOR) || !defined(ROCKSDB_MINOR) || \
     !defined(ROCKSDB_PATCH)
@@ -204,6 +205,9 @@ extern "C" {
 
 const char* block_base_table_str = "BlockBasedTable";
 
+struct wotr_t {
+  Wotr* rep;
+};
 struct crocksdb_t {
   DB* rep;
 };
@@ -737,6 +741,10 @@ crocksdb_t* crocksdb_open_for_read_only(const crocksdb_options_t* options,
   return result;
 }
 
+void crocksdb_set_wotr(crocksdb_t* db, wotr_t* w) {
+  db->rep->SetWotr(w->rep);
+}
+
 void crocksdb_status_ptr_get_error(crocksdb_status_ptr_t* status,
                                    char** errptr) {
   SaveError(errptr, *(status->rep));
@@ -1062,14 +1070,23 @@ size_t* crocksdb_write_wotr(crocksdb_t* db, const crocksdb_writeoptions_t* optio
                           crocksdb_writebatch_t* batch, size_t *lenoffsets,
                           char** errptr) {
   std::vector<size_t> offsets;
-  SaveError(errptr, db->rep->Write(options->rep, &batch->rep, &offsets));
+  Status s = db->rep->Write(options->rep, &batch->rep, &offsets);
 
-  *lenoffsets = offsets.size();
-  size_t* offsetarray = static_cast<size_t*>(malloc(sizeof(size_t) * offsets.size()));
-  for (size_t i = 0; i < offsets.size(); i++) {
-    offsetarray[i] = offsets[i];
+  if (s.ok()) {
+    *lenoffsets = offsets.size();
+    size_t* offsetarray = static_cast<size_t*>(malloc(sizeof(size_t) * offsets.size()));
+    for (size_t i = 0; i < offsets.size(); i++) {
+      offsetarray[i] = offsets[i];
+    }
+    return offsetarray;
+  } else {
+    SaveError(errptr, s);
   }
-  return offsetarray;
+  return nullptr;
+}
+
+void crocksdb_write_wotr_destroy(size_t* list) {
+  free(list);
 }
 
 void crocksdb_write_multi_batch(crocksdb_t* db,
@@ -1099,6 +1116,25 @@ char* crocksdb_get(crocksdb_t* db, const crocksdb_readoptions_t* options,
     }
   }
   return result;
+}
+
+crocksdb_pinnableslice_t* crocksdb_get_external(
+  crocksdb_t* db,
+  const crocksdb_readoptions_t* options,
+  const char* key, size_t keylen,
+  char** errptr) {
+  crocksdb_pinnableslice_t* v = new (crocksdb_pinnableslice_t);
+  Status s = db->rep->GetExternal(options->rep, Slice(key, keylen), &v->rep);
+  
+  if (!s.ok()) {
+    delete(v);
+    if (!s.IsNotFound()) {
+      SaveError(errptr, s);
+    }
+    return nullptr;
+  }
+  return v;
+
 }
 
 char* crocksdb_get_cf(crocksdb_t* db, const crocksdb_readoptions_t* options,

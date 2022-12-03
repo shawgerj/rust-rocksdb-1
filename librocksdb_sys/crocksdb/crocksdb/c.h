@@ -72,6 +72,7 @@ extern "C" {
 
 typedef struct crocksdb_cloud_envoptions_t crocksdb_cloud_envoptions_t;
 typedef struct crocksdb_t crocksdb_t;
+typedef struct wotr_t wotr_t;
 typedef struct crocksdb_status_ptr_t crocksdb_status_ptr_t;
 typedef struct crocksdb_backup_engine_t crocksdb_backup_engine_t;
 typedef struct crocksdb_backup_engine_info_t crocksdb_backup_engine_info_t;
@@ -237,6 +238,9 @@ extern C_ROCKSDB_LIBRARY_API crocksdb_t* crocksdb_open_for_read_only(
     const crocksdb_options_t* options, const char* name,
     unsigned char error_if_log_file_exist, char** errptr);
 
+extern C_ROCKSDB_LIBRARY_API void crocksdb_set_wotr(
+    crocksdb_t* db, wotr_t* w);
+
 extern C_ROCKSDB_LIBRARY_API void crocksdb_status_ptr_get_error(
     crocksdb_status_ptr_t*, char** errptr);
 
@@ -381,6 +385,12 @@ extern C_ROCKSDB_LIBRARY_API void crocksdb_write(
     crocksdb_t* db, const crocksdb_writeoptions_t* options,
     crocksdb_writebatch_t* batch, char** errptr);
 
+extern C_ROCKSDB_LIBRARY_API size_t* crocksdb_write_wotr(
+    crocksdb_t* db, const crocksdb_writeoptions_t* options,
+    crocksdb_writebatch_t* batch, size_t* lenoffsets, char** errptr);
+
+extern C_ROCKSDB_LIBRARY_API void crocksdb_write_wotr_destroy(size_t* list);
+
 extern C_ROCKSDB_LIBRARY_API void crocksdb_write_multi_batch(
     crocksdb_t* db, const crocksdb_writeoptions_t* options,
     crocksdb_writebatch_t** batches, size_t batch_size, char** errptr);
@@ -391,6 +401,10 @@ extern C_ROCKSDB_LIBRARY_API char* crocksdb_get(
     crocksdb_t* db, const crocksdb_readoptions_t* options, const char* key,
     size_t keylen, size_t* vallen, char** errptr);
 
+extern C_ROCKSDB_LIBRARY_API crocksdb_pinnableslice_t* crocksdb_get_external(
+    crocksdb_t* db, const crocksdb_readoptions_t* options, const char* key,
+    size_t keylen, char** errptr);
+    
 extern C_ROCKSDB_LIBRARY_API char* crocksdb_get_cf(
     crocksdb_t* db, const crocksdb_readoptions_t* options,
     crocksdb_column_family_handle_t* column_family, const char* key,

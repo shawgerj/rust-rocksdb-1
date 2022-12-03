@@ -8,7 +8,6 @@ links = "rocksdb"
 [dependencies]
 bzip2-sys = { version = "0.1.11+1.0.8", features = ["static"] }
 libc = "0.2.11"
-libtitan_sys = { path = "libtitan_sys" }
 libz-sys = { version = "1.1", features = ["static"] }
 openssl-sys = { version = "0.9.54", optional = true, features = ["vendored"] }
 zstd-sys = "1.4.19+zstd.1.4.8"
@@ -23,8 +22,8 @@ encryption = ["openssl-sys"]
 jemalloc = ["tikv-jemalloc-sys"]
 # portable doesn't require static link, though it's meaningless
 # when not using with static-link right now in this crate.
-portable = ["libtitan_sys/portable"]
-sse = ["libtitan_sys/sse"]
+portable = []
+sse = []
 static_libcpp = []
 
 [build-dependencies]

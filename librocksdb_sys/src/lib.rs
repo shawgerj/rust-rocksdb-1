@@ -50,6 +50,8 @@ pub struct ColumnFamilyDescriptor(c_void);
 #[repr(C)]
 pub struct DBInstance(c_void);
 #[repr(C)]
+pub struct WOTRInstance(c_void);
+#[repr(C)]
 pub struct DBWriteOptions(c_void);
 #[repr(C)]
 pub struct DBReadOptions(c_void);
@@ -495,6 +497,7 @@ macro_rules! ffi_try {
             return Err($crate::error_message(err));
         }
         res
+            
     });
     ($func:ident()) => ({
         use std::ptr;
@@ -938,6 +941,10 @@ extern "C" {
         error_if_log_file_exist: bool,
         err: *mut *mut c_char,
     ) -> *mut DBInstance;
+    pub fn crocksdb_set_wotr(
+        db: *mut DBInstance,
+        w: *mut WOTRInstance
+    );
     pub fn crocksdb_writeoptions_create() -> *mut DBWriteOptions;
     pub fn crocksdb_writeoptions_destroy(writeopts: *mut DBWriteOptions);
     pub fn crocksdb_writeoptions_set_sync(writeopts: *mut DBWriteOptions, v: bool);
@@ -1016,6 +1023,13 @@ extern "C" {
         valLen: *const size_t,
         err: *mut *mut c_char,
     ) -> *mut u8;
+    pub fn crocksdb_get_external(
+        db: *const DBInstance,
+        readopts: *const DBReadOptions,
+        k: *const u8,
+        kLen: size_t,
+        err: *mut *mut c_char,
+    ) -> *mut DBPinnableSlice;
     pub fn crocksdb_get_cf(
         db: *const DBInstance,
         readopts: *const DBReadOptions,
@@ -1154,6 +1168,16 @@ extern "C" {
         writeopts: *const DBWriteOptions,
         batch: *mut DBWriteBatch,
         err: *mut *mut c_char,
+    );
+    pub fn crocksdb_write_wotr(
+        db: *mut DBInstance,
+        writeopts: *const DBWriteOptions,
+        batch: *mut DBWriteBatch,
+        lenoffsets: *mut size_t,
+        err: *mut *mut c_char,
+    ) -> *mut size_t;
+    pub fn crocksdb_write_wotr_destroy(
+        list: *mut size_t,
     );
     pub fn crocksdb_write_multi_batch(
         db: *mut DBInstance,
