@@ -55,7 +55,11 @@ fn main() {
 
     println!("cargo:rerun-if-changed=crocksdb/crocksdb/c.h");
     println!("cargo:rerun-if-changed=crocksdb/c.cc");
+    println!("cargo:rerun-if-changed=wotr/c.h");
+    println!("cargo:rerun-if-changed=wotr/c.cc");
+
     build.cpp(true).file("crocksdb/c.cc");
+    build.cpp(true).file("wotr/c.cc");
     if !cfg!(target_os = "windows") {
         build.flag("-std=c++11");
         build.flag("-fno-rtti");

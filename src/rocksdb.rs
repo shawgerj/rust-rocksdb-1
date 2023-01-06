@@ -15,7 +15,7 @@
 use crocksdb_ffi::{
     self, DBBackupEngine, DBCFHandle, DBCache, DBCompressionType, DBEnv, DBInstance, DBMapProperty,
     DBPinnableSlice, DBSequentialFile, DBStatisticsHistogramType, DBStatisticsTickerType,
-    DBTablePropertiesCollection, DBTitanDBOptions, DBWriteBatch,
+    DBTablePropertiesCollection, DBTitanDBOptions, DBWriteBatch, WOTRInstance
 };
 use libc::{self, c_char, c_int, c_void, size_t};
 use librocksdb_sys::DBMemoryAllocator;
@@ -488,6 +488,13 @@ pub struct KeyVersion {
 }
 
 impl DB {
+    pub fn set_wotr(&self, w: &WOTR) -> Result<(), String> {
+        unsafe {
+            crocksdb_ffi::crocksdb_set_wotr(self.inner, w.inner);
+        }
+        Ok(())
+    }
+
     pub fn open_default(path: &str) -> Result<DB, String> {
         let mut opts = DBOptions::new();
         opts.create_if_missing(true);
@@ -2078,6 +2085,67 @@ impl Drop for DB {
     }
 }
 
+pub struct WOTR {
+    inner: *mut WOTRInstance,
+    logpath: String,
+}
+
+impl WOTR {
+    pub fn wotr_init(logfile: &str) -> Result<WOTR, String> {
+        let logfile_path = match CString::new(logfile.as_bytes()) {
+            Ok(c) => c,
+            Err(_) => {
+                return Err(
+                    "Failed to convert logfile to CString when init WOTR"
+                        .to_owned(),
+                );
+            }
+        };
+
+        let w = {
+            unsafe {
+                crocksdb_ffi::wotr_open(logfile_path.as_ptr())
+            }
+        };
+        Ok( WOTR { inner: w, logpath: logfile.to_owned() } )
+    }
+
+    // pub fn wotr_write(&self, logdata: &[u8]) -> Result<size_t, String> {
+    //     let offset = {
+    //         unsafe {
+    //             ffi_try!(crocksdb_ffi::wotr_write(self.inner,
+    //                                              logdata.as_ptr(),
+    //                                              logdata.len() as size_t,
+    //             ));
+    //         }
+    //     };
+    //     return Ok( offset );
+    // }
+
+    // pub fn wotr_get(&self, offset: size_t, data: &[u8]) -> Result<Vec![u8], String> {
+    //     let mut data_len: size_t = 0;
+    //     let data_len_ptr: *mut size_t = &mut data_len;
+
+    //     unsafe {
+    //         ffi_try!(crocksdb_ffi::wotr_get(self.inner,
+    //                                         offset,
+    //                                         data.as_ptr(),
+    //                                         data_len_ptr,
+    //         ));
+    //     }
+    //     return Ok( data_len );
+    // }
+}
+
+impl Drop for WOTR {
+    fn drop(&mut self) {
+        unsafe {
+            crocksdb_ffi::wotr_close(self.inner);
+        }
+    }
+}
+
+
 impl Writable for WriteBatch {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<(), String> {
         unsafe {
@@ -2913,6 +2981,10 @@ mod test {
     use super::*;
     use crate::tempdir_with_prefix;
 
+    fn setup_wotr_logpath(dir: &tempfile::TempDir, logname: &str) -> String {
+        return format!("{}/{}", dir.path().to_str().unwrap(), logname);
+    }
+    
     #[test]
     fn external() {
         let path = tempdir_with_prefix("_rust_rocksdb_externaltest");
@@ -2923,6 +2995,87 @@ mod test {
         assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
         assert!(db.delete(b"k1").is_ok());
         assert!(db.get(b"k1").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_wotr_init() {
+        let path = tempdir_with_prefix("_rust_rocksdb_wotr_init");
+        let logpath = setup_wotr_logpath(&path, "wotrlog_test_init");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+
+        assert!(!w.inner.is_null());
+    }
+
+    #[test]    
+    fn test_wotr_set_rocksdb() {
+        let path = tempdir_with_prefix("_rust_rocksdb_wotr_set");
+        let pathstr = path.path().to_str().unwrap();
+        let db = DB::open_default(pathstr).unwrap();
+
+        let logpath = setup_wotr_logpath(&path, "wotrlog_test_set");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+        assert!(db.set_wotr(&w).is_ok());
+    }
+
+    #[test]    
+    fn test_wotr_rocksdb_rw() {
+        let path = tempdir_with_prefix("_rust_rocksdb_wotr_rw");
+        let pathstr = path.path().to_str().unwrap();
+        let db = DB::open_default(pathstr).unwrap();
+
+        let logpath = setup_wotr_logpath(&path, "wotrlog_test_rw");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+        assert!(db.set_wotr(&w).is_ok());
+
+        let wb = WriteBatch::new();
+        let _ = wb.put(b"k1", b"v1111");
+        let _ = wb.put(b"k2", b"v2222");
+
+        let offsets = db.write_wotr(&wb, &WriteOptions::new()).unwrap();
+        // test that there are two offsets and both are not zero
+        assert!(offsets.len() == 2);
+        assert!(offsets[1] != 0);
+
+        // do I need type hint here, as in above test?
+        let r = db.get_external(b"k1", &ReadOptions::new());
+        assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
+        let r2 = db.get_external(b"k2", &ReadOptions::new());
+        assert!(r2.unwrap().unwrap().to_utf8().unwrap() == "v2222");
+    }
+
+    #[test]    
+    fn test_wotr_multi_rocksdb() {
+        let db1_path = tempdir_with_prefix("_rust_rocksdb_wotr_multidb1");
+        let db1_pathstr = db1_path.path().to_str().unwrap();
+        let db1 = DB::open_default(db1_pathstr).unwrap();
+
+        let db2_path = tempdir_with_prefix("_rust_rocksdb_wotr_multidb2");
+        let db2_pathstr = db2_path.path().to_str().unwrap();
+        let db2 = DB::open_default(db2_pathstr).unwrap();
+
+        let logpath = setup_wotr_logpath(&db1_path, "wotrlog_test_multidb");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+        assert!(db1.set_wotr(&w).is_ok());
+        assert!(db2.set_wotr(&w).is_ok());
+
+        // write KVs to db1 and WOTR
+        let wb = WriteBatch::new();
+        let _ = wb.put(b"k1", b"v1111");
+        let _ = wb.put(b"k2", b"v2222");
+
+        let offsets = db1.write_wotr(&wb, &WriteOptions::new()).unwrap();
+
+        // write offsets to db2
+        let wb_offsets = WriteBatch::new();
+        let _ = wb_offsets.put(b"k1", offsets[0].to_string().as_bytes());
+        let _ = wb_offsets.put(b"k2", offsets[1].to_string().as_bytes());
+        let db2_res = db2.write(&wb_offsets).unwrap();
+
+        // get values from db2 using get_external
+        let r = db2.get_external(b"k1", &ReadOptions::new());
+        assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
+        let r2 = db2.get_external(b"k2", &ReadOptions::new());
+        assert!(r2.unwrap().unwrap().to_utf8().unwrap() == "v2222");
     }
 
     #[allow(unused_variables)]
