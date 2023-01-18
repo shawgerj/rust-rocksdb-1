@@ -1100,6 +1100,33 @@ void crocksdb_write_multi_batch(crocksdb_t* db,
   SaveError(errptr, db->rep->MultiBatchWrite(options->rep, std::move(ws)));
 }
 
+size_t* crocksdb_write_multib_wotr(crocksdb_t* db,
+                                   const crocksdb_writeoptions_t* options,
+                                   crocksdb_writebatch_t** batches,
+                                   size_t batch_size, size_t *lenoffsets,
+                                   char** errptr) {
+  std::vector<size_t> offsets;
+  std::vector<WriteBatch*> ws;
+  for (size_t i = 0; i < batch_size; i++) {
+    ws.push_back(&batches[i]->rep);
+  }
+  Status s = db->rep->MultiBatchWrite(options->rep, std::move(ws), &offsets);
+
+  if (s.ok()) {
+    *lenoffsets = offsets.size();
+    size_t* offsetarray = static_cast<size_t*>(malloc(sizeof(size_t) * offsets.size()));
+    for (size_t i = 0; i < offsets.size(); i++) {
+      offsetarray[i] = offsets[i];
+    }
+    return offsetarray;
+  } else {
+    SaveError(errptr, s);
+  }
+  return nullptr;
+}
+
+
+
 char* crocksdb_get(crocksdb_t* db, const crocksdb_readoptions_t* options,
                    const char* key, size_t keylen, size_t* vallen,
                    char** errptr) {

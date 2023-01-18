@@ -1366,6 +1366,16 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn crocksdb_write_multib_wotr(
+        db: *mut crocksdb_t,
+        options: *const crocksdb_writeoptions_t,
+        batches: *mut *mut crocksdb_writebatch_t,
+        batch_size: size_t,
+        lenoffsets: *mut size_t,
+        errptr: *mut *mut libc::c_char,
+    ) -> *mut size_t;
+}
+extern "C" {
     pub fn crocksdb_get(
         db: *mut crocksdb_t,
         options: *const crocksdb_readoptions_t,

@@ -808,7 +808,10 @@ impl DB {
         Ok(())
     }
 
-    pub fn write_wotr(&self, batch: &WriteBatch, writeopts: &WriteOptions) -> Result<Vec<size_t>, String> {
+    pub fn write_wotr(&self,
+                      batch: &WriteBatch,
+                      writeopts: &WriteOptions
+    ) -> Result<Vec<size_t>, String> {
         let mut offsets: Vec<size_t> = vec![];
         unsafe {
             let mut lenoffsets: size_t = 0;
@@ -845,6 +848,33 @@ impl DB {
             }
         }
         Ok(())
+    }
+
+    pub fn multib_write_wotr(
+        &self,
+        batches: &[WriteBatch],
+        writeopts: &WriteOptions,
+    ) -> Result<Vec<size_t>, String> {
+        let mut offsets: Vec<size_t> = vec![];
+        unsafe {
+            let mut lenoffsets: size_t = 0;
+            let b: Vec<*mut DBWriteBatch> = batches.iter().map(|w| w.inner).collect();
+            if !b.is_empty() {
+                let list = ffi_try!(crocksdb_write_multib_wotr(
+                    self.inner,
+                    writeopts.inner,
+                    b.as_ptr(),
+                    b.len(),
+                    &mut lenoffsets
+                ));
+                let list_offsets = slice::from_raw_parts(list, lenoffsets);
+                for &offset in list_offsets {
+                    offsets.push(offset);
+                }
+                crocksdb_ffi::crocksdb_write_wotr_destroy(list);
+            }
+        }
+        Ok(offsets)
     }
 
     pub fn write(&self, batch: &WriteBatch) -> Result<(), String> {
