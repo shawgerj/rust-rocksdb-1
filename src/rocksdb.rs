@@ -2139,32 +2139,6 @@ impl WOTR {
         };
         Ok( WOTR { inner: w, logpath: logfile.to_owned() } )
     }
-
-    // pub fn wotr_write(&self, logdata: &[u8]) -> Result<size_t, String> {
-    //     let offset = {
-    //         unsafe {
-    //             ffi_try!(crocksdb_ffi::wotr_write(self.inner,
-    //                                              logdata.as_ptr(),
-    //                                              logdata.len() as size_t,
-    //             ));
-    //         }
-    //     };
-    //     return Ok( offset );
-    // }
-
-    // pub fn wotr_get(&self, offset: size_t, data: &[u8]) -> Result<Vec![u8], String> {
-    //     let mut data_len: size_t = 0;
-    //     let data_len_ptr: *mut size_t = &mut data_len;
-
-    //     unsafe {
-    //         ffi_try!(crocksdb_ffi::wotr_get(self.inner,
-    //                                         offset,
-    //                                         data.as_ptr(),
-    //                                         data_len_ptr,
-    //         ));
-    //     }
-    //     return Ok( data_len );
-    // }
 }
 
 impl Drop for WOTR {
@@ -3066,7 +3040,6 @@ mod test {
         assert!(offsets.len() == 2);
         assert!(offsets[1] != 0);
 
-        // do I need type hint here, as in above test?
         let r = db.get_external(b"k1", &ReadOptions::new());
         assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
         let r2 = db.get_external(b"k2", &ReadOptions::new());
@@ -3074,7 +3047,39 @@ mod test {
     }
 
     #[test]    
-    fn test_wotr_multi_rocksdb() {
+    fn test_wotr_rocksdb_multib() {
+        let mut opts = DBOptions::new();
+        opts.create_if_missing(true);
+        opts.enable_multi_batch_write(true);
+        let path = tempdir_with_prefix("_rust_rocksdb_multi_batch");
+        let pathstr = path.path().to_str().unwrap();
+        let db = DB::open(opts, pathstr).unwrap();
+
+        let logpath = setup_wotr_logpath(&path, "wotrlog_test_rw");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+        assert!(db.set_wotr(&w).is_ok());
+
+        let mut data = Vec::new();
+        for s in &[b"ab", b"cd", b"ef"] {
+            let w = WriteBatch::new();
+            w.put(s.to_vec().as_slice(), b"a").unwrap();
+            data.push(w);
+        }
+        let offsets = db.multib_write_wotr(&data, &WriteOptions::new()).unwrap();
+        for s in &[b"ab", b"cd", b"ef"] {
+            let v = db.get_external(s.to_vec().as_slice(),
+                                    &ReadOptions::new()).unwrap();
+            assert!(v.is_some());
+            assert_eq!(v.unwrap().to_utf8().unwrap(), "a");
+        }
+    }
+
+    // I need another test with column families. See multi batch test
+    // for an example of using put_cf and get_cf. This should work with
+    // WOTR too.
+
+    #[test]    
+    fn test_wotr_twodb_rocksdb() {
         let db1_path = tempdir_with_prefix("_rust_rocksdb_wotr_multidb1");
         let db1_pathstr = db1_path.path().to_str().unwrap();
         let db1 = DB::open_default(db1_pathstr).unwrap();
