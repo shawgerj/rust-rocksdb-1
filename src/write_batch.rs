@@ -132,6 +132,24 @@ impl WriteBatch {
     pub fn iter(&self) -> WriteBatchIter {
         WriteBatchIter::new(self)
     }
+
+    // using this for WOTR
+    // return all the keys which will be written to db
+    // exclude delete, merge
+    pub fn keys_to_write(&self) -> Option<Vec<&[u8]>> {
+        let batch_iter = self.iter();
+
+        let mut keys = Vec::new();
+        for i in batch_iter {
+            let (value_type, _column_family, key, _val) = i;
+
+            match value_type {
+                DBValueType::TypeValue => { keys.push(key); }
+                _ => {}
+            }
+        }
+        Some(keys)
+    }
 }
 
 pub struct WriteBatchIter<'a> {
