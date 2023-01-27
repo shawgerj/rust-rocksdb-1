@@ -944,6 +944,7 @@ extern "C" {
     pub fn crocksdb_set_wotr(
         db: *mut DBInstance,
         w: *mut WOTRInstance,
+        err: *mut *mut c_char,
     );
     pub fn crocksdb_writeoptions_create() -> *mut DBWriteOptions;
     pub fn crocksdb_writeoptions_destroy(writeopts: *mut DBWriteOptions);
@@ -2759,7 +2760,10 @@ extern "C" {
 }
 
 extern "C" {
-    pub fn wotr_open(logfile: *const c_char) -> *mut WOTRInstance;
+    pub fn wotr_open(
+        logfile: *const c_char,
+        errptr: *mut *mut c_char
+    ) -> *mut WOTRInstance;
     pub fn wotr_write(
         w: *mut WOTRInstance,
         logdata: *const c_char,

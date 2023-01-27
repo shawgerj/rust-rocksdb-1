@@ -239,7 +239,7 @@ extern C_ROCKSDB_LIBRARY_API crocksdb_t* crocksdb_open_for_read_only(
     unsigned char error_if_log_file_exist, char** errptr);
 
 extern C_ROCKSDB_LIBRARY_API void crocksdb_set_wotr(
-    crocksdb_t* db, wotr_t* w);
+    crocksdb_t* db, wotr_t* w, char** errptr);
 
 extern C_ROCKSDB_LIBRARY_API void crocksdb_status_ptr_get_error(
     crocksdb_status_ptr_t*, char** errptr);

@@ -1073,7 +1073,7 @@ extern "C" {
     ) -> *mut crocksdb_t;
 }
 extern "C" {
-    pub fn crocksdb_set_wotr(db: *mut crocksdb_t, w: *mut wotr_t);
+    pub fn crocksdb_set_wotr(db: *mut crocksdb_t, w: *mut wotr_t, errptr: *mut *mut libc::c_char);
 }
 extern "C" {
     pub fn crocksdb_status_ptr_get_error(
@@ -5623,7 +5623,7 @@ extern "C" {
     );
 }
 extern "C" {
-    pub fn wotr_open(logfile: *const libc::c_char) -> *mut wotr_t;
+    pub fn wotr_open(logfile: *const libc::c_char, errptr: *mut *mut libc::c_char) -> *mut wotr_t;
 }
 extern "C" {
     pub fn wotr_write(w: *mut wotr_t, logdata: *const libc::c_char, len: size_t) -> libc::c_int;

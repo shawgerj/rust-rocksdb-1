@@ -490,7 +490,7 @@ pub struct KeyVersion {
 impl DB {
     pub fn set_wotr(&self, w: &WOTR) -> Result<(), String> {
         unsafe {
-            crocksdb_ffi::crocksdb_set_wotr(self.inner, w.inner);
+            ffi_try!(crocksdb_set_wotr(self.inner, w.inner))
         }
         Ok(())
     }
@@ -2134,7 +2134,7 @@ impl WOTR {
 
         let w = {
             unsafe {
-                crocksdb_ffi::wotr_open(logfile_path.as_ptr())
+                ffi_try!(wotr_open(logfile_path.as_ptr()))
             }
         };
         Ok( WOTR { inner: w, logpath: logfile.to_owned() } )
@@ -3079,7 +3079,7 @@ mod test {
     // WOTR too.
 
     #[test]    
-    fn test_wotr_twodb_rocksdb() {
+    fn test_wotr_twodb() {
         let db1_path = tempdir_with_prefix("_rust_rocksdb_wotr_multidb1");
         let db1_pathstr = db1_path.path().to_str().unwrap();
         let db1 = DB::open_default(db1_pathstr).unwrap();
@@ -3111,6 +3111,48 @@ mod test {
         assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
         let r2 = db2.get_external(b"k2", &ReadOptions::new());
         assert!(r2.unwrap().unwrap().to_utf8().unwrap() == "v2222");
+    }
+    
+    #[test]    
+    fn test_wotr_twodb2() {
+        let db1_path = tempdir_with_prefix("_rust_rocksdb_wotr_multidb1");
+        let db1_pathstr = db1_path.path().to_str().unwrap();
+        let db1 = DB::open_default(db1_pathstr).unwrap();
+
+        let db2_path = tempdir_with_prefix("_rust_rocksdb_wotr_multidb2");
+        let db2_pathstr = db2_path.path().to_str().unwrap();
+        let db2 = DB::open_default(db2_pathstr).unwrap();
+
+        let logpath = setup_wotr_logpath(&db1_path, "wotrlog_test_multidb");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+        assert!(db1.set_wotr(&w).is_ok());
+        assert!(db2.set_wotr(&w).is_ok());
+
+        let wb1 = WriteBatch::new();
+        let _ = wb1.put(b"k1", b"v1111");
+        let _ = wb1.put(b"k2", b"v2222");
+
+        let offsets = db1.write_wotr(&wb1, &WriteOptions::new()).unwrap();
+        let wb1_offsets = WriteBatch::new();
+        let _ = wb1_offsets.put(b"k1", offsets[0].to_string().as_bytes());
+        let _ = wb1_offsets.put(b"k2", offsets[1].to_string().as_bytes());
+        let r1_offsets = db2.write(&wb1_offsets).unwrap();
+
+        let wb2 = WriteBatch::new();
+        let _ = wb2.put(b"k3", b"v3333");
+        let _ = wb2.put(b"k4", b"v4444");
+
+        let offsets = db2.write_wotr(&wb2, &WriteOptions::new()).unwrap();
+        let wb2_offsets = WriteBatch::new();
+        let _ = wb2_offsets.put(b"k3", offsets[0].to_string().as_bytes());
+        let _ = wb2_offsets.put(b"k4", offsets[1].to_string().as_bytes());
+        let r2_offsets = db1.write(&wb2_offsets).unwrap();
+
+        // get values from db1 and db2 using get_external
+        let r = db2.get_external(b"k1", &ReadOptions::new());
+        assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
+        let r2 = db1.get_external(b"k3", &ReadOptions::new());
+        assert!(r2.unwrap().unwrap().to_utf8().unwrap() == "v3333");
     }
 
     #[allow(unused_variables)]

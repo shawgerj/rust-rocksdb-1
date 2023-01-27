@@ -741,8 +741,8 @@ crocksdb_t* crocksdb_open_for_read_only(const crocksdb_options_t* options,
   return result;
 }
 
-void crocksdb_set_wotr(crocksdb_t* db, wotr_t* w) {
-  db->rep->SetWotr(w->rep);
+void crocksdb_set_wotr(crocksdb_t* db, wotr_t* w, char** errptr) {
+  SaveError(errptr, db->rep->SetWotr(w->rep));
 }
 
 void crocksdb_status_ptr_get_error(crocksdb_status_ptr_t* status,
