@@ -903,6 +903,27 @@ impl DB {
         }
     }
 
+    pub fn get_external_cf(&self,
+                           cf: &CFHandle,
+                           key: &[u8],
+                           readopts: &ReadOptions
+    ) ->Result<Option<DBVector>, String> {
+        unsafe {
+            let val = ffi_try!(crocksdb_get_external_cf(
+                self.inner,
+                readopts.get_inner(),
+                cf.inner,
+                key.as_ptr(),
+                key.len() as size_t
+            ));
+            if val.is_null() {
+                Ok(None)
+            } else {
+                Ok(Some(DBVector::from_pinned_slice(val)))
+            }
+        }
+    }
+
     pub fn get_opt(&self, key: &[u8], readopts: &ReadOptions) -> Result<Option<DBVector>, String> {
         unsafe {
             let val = ffi_try!(crocksdb_get_pinned(
