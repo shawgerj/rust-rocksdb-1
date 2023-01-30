@@ -3747,6 +3747,57 @@ mod test {
     }
 
     #[test]
+    fn test_atomic_flush_wotr() {
+        let path = tempdir_with_prefix("_rust_rocksdb_test_atomic_flush");
+        let cfs = ["default", "cf1", "cf2", "cf3"];
+        let mut cfs_opts = vec![];
+        for _ in 0..cfs.len() {
+            cfs_opts.push(ColumnFamilyOptions::new());
+        }
+
+        {
+            let mut opts = DBOptions::new();
+            opts.create_if_missing(true);
+            opts.set_atomic_flush(true);
+            let mut db = DB::open(opts, path.path().to_str().unwrap()).unwrap();
+            let logpath = setup_wotr_logpath(&path, "wotrlog_test_atomicflush");
+            let w = WOTR::wotr_init(&logpath).unwrap();
+            assert!(db.set_wotr(&w).is_ok());
+            
+            let wb = WriteBatch::new();
+            for (cf, cf_opts) in cfs.iter().zip(cfs_opts.iter().cloned()) {
+                if *cf != "default" {
+                    db.create_cf((*cf, cf_opts)).unwrap();
+                }
+                let handle = db.cf_handle(cf).unwrap();
+                wb.put_cf(handle, b"k", cf.as_bytes()).unwrap();
+            }
+            let mut options = WriteOptions::new();
+            options.disable_wal(true);
+            let offsets = db.write_wotr(&wb, &options).unwrap();
+            dbg!(offsets);
+            let handles: Vec<_> = cfs.iter().map(|name| db.cf_handle(name).unwrap()).collect();
+            db.flush_cfs(&handles, true).unwrap();
+        }
+
+        let opts = DBOptions::new();
+        let db = DB::open_cf(
+            opts,
+            path.path().to_str().unwrap(),
+            cfs.iter().map(|cf| *cf).zip(cfs_opts).collect(),
+        )
+            .unwrap();
+        let logpath = setup_wotr_logpath(&path, "wotrlog_test_atomicflush");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+        assert!(db.set_wotr(&w).is_ok());
+        
+        for cf in &cfs {
+            let handle = db.cf_handle(cf).unwrap();
+            assert_eq!(db.get_external_cf(handle, b"k", &ReadOptions::new()).unwrap().unwrap(), cf.as_bytes());
+        }
+    }
+
+    #[test]
     fn test_map_property() {
         let path = tempdir_with_prefix("_rust_rocksdb_get_map_property");
         let dbpath = path.path().to_str().unwrap().clone();

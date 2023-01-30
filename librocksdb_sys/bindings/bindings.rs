@@ -5636,7 +5636,12 @@ extern "C" {
     pub fn wotr_open(logfile: *const libc::c_char, errptr: *mut *mut libc::c_char) -> *mut wotr_t;
 }
 extern "C" {
-    pub fn wotr_write(w: *mut wotr_t, logdata: *const libc::c_char, len: size_t) -> libc::c_int;
+    pub fn wotr_write(
+        w: *mut wotr_t,
+        logdata: *const libc::c_char,
+        len: size_t,
+        flush: libc::c_int,
+    ) -> libc::c_int;
 }
 extern "C" {
     pub fn wotr_get(
@@ -5648,5 +5653,8 @@ extern "C" {
 }
 extern "C" {
     pub fn wotr_close(w: *mut wotr_t);
+}
+extern "C" {
+    pub fn wotr_flush(w: *mut wotr_t) -> libc::c_int;
 }
 pub type __builtin_va_list = *mut libc::c_char;

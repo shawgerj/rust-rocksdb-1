@@ -2776,6 +2776,7 @@ extern "C" {
         w: *mut WOTRInstance,
         logdata: *const c_char,
         len: size_t,
+        flush: c_int,
     ) -> size_t;
     pub fn wotr_get(
         w: *mut WOTRInstance,
