@@ -1264,6 +1264,29 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn crocksdb_put_external(
+        db: *mut crocksdb_t,
+        options: *const crocksdb_writeoptions_t,
+        key: *const libc::c_char,
+        keylen: size_t,
+        val: *const libc::c_char,
+        vallen: size_t,
+        errptr: *mut *mut libc::c_char,
+    ) -> size_t;
+}
+extern "C" {
+    pub fn crocksdb_put_cf_external(
+        db: *mut crocksdb_t,
+        options: *const crocksdb_writeoptions_t,
+        column_family: *mut crocksdb_column_family_handle_t,
+        key: *const libc::c_char,
+        keylen: size_t,
+        val: *const libc::c_char,
+        vallen: size_t,
+        errptr: *mut *mut libc::c_char,
+    ) -> size_t;
+}
+extern "C" {
     pub fn crocksdb_delete(
         db: *mut crocksdb_t,
         options: *const crocksdb_writeoptions_t,

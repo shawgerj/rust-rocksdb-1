@@ -975,6 +975,26 @@ extern "C" {
         vLen: size_t,
         err: *mut *mut c_char,
     );
+    pub fn crocksdb_put_external(
+        db: *mut DBInstance,
+        writeopts: *mut DBWriteOptions,
+        k: *const u8,
+        kLen: size_t,
+        v: *const u8,
+        vLen: size_t,
+        err: *mut *mut c_char,
+    ) -> size_t;
+    pub fn crocksdb_put_cf_external(
+        db: *mut DBInstance,
+        writeopts: *mut DBWriteOptions,
+        cf: *mut DBCFHandle,
+        k: *const u8,
+        kLen: size_t,
+        v: *const u8,
+        vLen: size_t,
+        err: *mut *mut c_char,
+    ) -> size_t;
+
     pub fn crocksdb_readoptions_create() -> *mut DBReadOptions;
     pub fn crocksdb_readoptions_destroy(readopts: *mut DBReadOptions);
     pub fn crocksdb_readoptions_set_verify_checksums(readopts: *mut DBReadOptions, v: bool);

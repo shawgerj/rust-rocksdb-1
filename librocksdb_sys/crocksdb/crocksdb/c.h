@@ -348,6 +348,14 @@ extern C_ROCKSDB_LIBRARY_API void crocksdb_put_cf(
     crocksdb_t* db, const crocksdb_writeoptions_t* options,
     crocksdb_column_family_handle_t* column_family, const char* key,
     size_t keylen, const char* val, size_t vallen, char** errptr);
+extern C_ROCKSDB_LIBRARY_API size_t crocksdb_put_external(
+    crocksdb_t* db, const crocksdb_writeoptions_t* options, const char* key,
+    size_t keylen, const char* val, size_t vallen, char** errptr);
+
+extern C_ROCKSDB_LIBRARY_API size_t crocksdb_put_cf_external(
+    crocksdb_t* db, const crocksdb_writeoptions_t* options,
+    crocksdb_column_family_handle_t* column_family, const char* key,
+    size_t keylen, const char* val, size_t vallen, char** errptr);
 
 extern C_ROCKSDB_LIBRARY_API void crocksdb_delete(
     crocksdb_t* db, const crocksdb_writeoptions_t* options, const char* key,

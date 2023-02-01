@@ -1114,7 +1114,7 @@ impl DB {
         writeopts: &WriteOptions,
     ) -> Result<(), String> {
         unsafe {
-            ffi_try!(crocksdb_put_cf(
+            let offset = ffi_try!(crocksdb_put_cf(
                 self.inner,
                 writeopts.inner,
                 cf.inner,
@@ -1123,9 +1123,50 @@ impl DB {
                 value.as_ptr(),
                 value.len() as size_t
             ));
-            Ok(())
+            Ok(offset)
         }
     }
+    pub fn put_opt_external(
+        &self,
+        key: &[u8],
+        value: &[u8],
+        writeopts: &WriteOptions,
+    ) -> Result<size_t, String> {
+        unsafe {
+            let offset = ffi_try!(crocksdb_put_external(
+                self.inner,
+                writeopts.inner,
+                key.as_ptr(),
+                key.len() as size_t,
+                value.as_ptr(),
+                value.len() as size_t
+            ));
+            Ok(offset)
+        }
+    }
+
+    pub fn put_cf_opt_external(
+        &self,
+        cf: &CFHandle,
+        key: &[u8],
+        value: &[u8],
+        writeopts: &WriteOptions,
+    ) -> Result<size_t, String> {
+        unsafe {
+            let offset = ffi_try!(crocksdb_put_cf_external(
+                self.inner,
+                writeopts.inner,
+                cf.inner,
+                key.as_ptr(),
+                key.len() as size_t,
+                value.as_ptr(),
+                value.len() as size_t
+            ));
+            Ok(offset)
+        }
+    }
+
+    
     pub fn merge_opt(
         &self,
         key: &[u8],

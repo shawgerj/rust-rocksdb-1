@@ -1009,6 +1009,34 @@ void crocksdb_put_cf(crocksdb_t* db, const crocksdb_writeoptions_t* options,
                                  Slice(key, keylen), Slice(val, vallen)));
 }
 
+size_t crocksdb_put_external(crocksdb_t* db,
+                           const crocksdb_writeoptions_t* options,
+                           const char* key, size_t keylen, const char* val,
+                           size_t vallen, char** errptr) {
+  size_t offset;
+  SaveError(errptr,
+            db->rep->PutExternal(options->rep,
+                                 Slice(key, keylen),
+                                 Slice(val, vallen),
+                                 &offset));
+  return offset;
+}
+
+size_t crocksdb_put_cf_external(crocksdb_t* db,
+                              const crocksdb_writeoptions_t* options,
+                              crocksdb_column_family_handle_t* column_family,
+                              const char* key, size_t keylen, const char* val,
+                              size_t vallen, char** errptr) {
+  size_t offset;
+  SaveError(errptr, db->rep->PutExternal(options->rep,
+                                 column_family->rep,
+                                 Slice(key, keylen),
+                                 Slice(val, vallen),
+                                 &offset));
+  return offset;
+}
+  
+
 void crocksdb_delete(crocksdb_t* db, const crocksdb_writeoptions_t* options,
                      const char* key, size_t keylen, char** errptr) {
   SaveError(errptr, db->rep->Delete(options->rep, Slice(key, keylen)));
