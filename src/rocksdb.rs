@@ -1126,12 +1126,13 @@ impl DB {
             Ok(offset)
         }
     }
-    pub fn put_opt_external(
+    pub fn put_external(
         &self,
         key: &[u8],
         value: &[u8],
-        writeopts: &WriteOptions,
     ) -> Result<size_t, String> {
+        let mut writeopts = WriteOptions::new();
+        writeopts.disable_wal(true);
         unsafe {
             let offset = ffi_try!(crocksdb_put_external(
                 self.inner,
@@ -1145,13 +1146,14 @@ impl DB {
         }
     }
 
-    pub fn put_cf_opt_external(
+    pub fn put_cf_external(
         &self,
         cf: &CFHandle,
         key: &[u8],
         value: &[u8],
-        writeopts: &WriteOptions,
     ) -> Result<size_t, String> {
+        let mut writeopts = WriteOptions::new();
+        writeopts.disable_wal(true);
         unsafe {
             let offset = ffi_try!(crocksdb_put_cf_external(
                 self.inner,
@@ -3081,6 +3083,24 @@ mod test {
         let logpath = setup_wotr_logpath(&path, "wotrlog_test_set");
         let w = WOTR::wotr_init(&logpath).unwrap();
         assert!(db.set_wotr(&w).is_ok());
+    }
+
+    #[test]    
+    fn test_wotr_rocksdb_put_get() {
+        let path = tempdir_with_prefix("_rust_rocksdb_wotr_put_get");
+        let pathstr = path.path().to_str().unwrap();
+        let db = DB::open_default(pathstr).unwrap();
+
+        let logpath = setup_wotr_logpath(&path, "wotrlog_test_putget");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+        assert!(db.set_wotr(&w).is_ok());
+
+        let offset = db.put_external(b"k1", b"v1111").unwrap();
+        let offset2 = db.put_external(b"k2", b"v2222").unwrap();
+        let r = db.get_external(b"k1", &ReadOptions::new());
+        assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
+        let r2 = db.get_external(b"k2", &ReadOptions::new());
+        assert!(r2.unwrap().unwrap().to_utf8().unwrap() == "v2222");
     }
 
     #[test]    
