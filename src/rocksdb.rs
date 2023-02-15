@@ -2184,6 +2184,15 @@ pub struct WOTR {
     logpath: String,
 }
 
+impl Debug for WOTR {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "Wotr [path={}]", self.logpath)
+    }
+}
+
+unsafe impl Send for WOTR {}
+unsafe impl Sync for WOTR {}
+
 impl WOTR {
     pub fn wotr_init(logfile: &str) -> Result<WOTR, String> {
         let logfile_path = match CString::new(logfile.as_bytes()) {

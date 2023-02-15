@@ -5655,8 +5655,22 @@ extern "C" {
         errptr: *mut *mut libc::c_char,
     );
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct offset_t {
+    _unused: [u8; 0],
+}
 extern "C" {
     pub fn wotr_open(logfile: *const libc::c_char, errptr: *mut *mut libc::c_char) -> *mut wotr_t;
+}
+extern "C" {
+    pub fn wotr_register(w: *mut wotr_t, pathstr: *const libc::c_char, len: size_t) -> libc::c_int;
+}
+extern "C" {
+    pub fn wotr_unregister(w: *mut wotr_t, ident: libc::c_int);
+}
+extern "C" {
+    pub fn wotr_numregister(w: *mut wotr_t) -> libc::c_int;
 }
 extern "C" {
     pub fn wotr_write(
@@ -5664,7 +5678,7 @@ extern "C" {
         logdata: *const libc::c_char,
         len: size_t,
         flush: libc::c_int,
-    ) -> libc::c_int;
+    ) -> *mut offset_t;
 }
 extern "C" {
     pub fn wotr_get(
@@ -5672,6 +5686,7 @@ extern "C" {
         offset: size_t,
         data: *mut *mut libc::c_char,
         len: *mut size_t,
+        version: size_t,
     ) -> libc::c_int;
 }
 extern "C" {

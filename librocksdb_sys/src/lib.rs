@@ -52,6 +52,8 @@ pub struct DBInstance(c_void);
 #[repr(C)]
 pub struct WOTRInstance(c_void);
 #[repr(C)]
+pub struct WOTROffset(c_void);
+#[repr(C)]
 pub struct DBWriteOptions(c_void);
 #[repr(C)]
 pub struct DBReadOptions(c_void);
@@ -2792,12 +2794,24 @@ extern "C" {
         logfile: *const c_char,
         errptr: *mut *mut c_char
     ) -> *mut WOTRInstance;
+    pub fn wotr_register(
+        w: *mut WOTRInstance,
+        pathstr: *const c_char,
+        len: size_t,
+    ) -> u32;
+    pub fn wotr_unregister(
+        w: *mut WOTRInstance,
+        ident: u32,
+    );
+    pub fn wotr_numregister(
+        w: *mut WOTRInstance,
+    ) -> u32;
     pub fn wotr_write(
         w: *mut WOTRInstance,
         logdata: *const c_char,
         len: size_t,
         flush: c_int,
-    ) -> size_t;
+    ) -> WOTROffset;
     pub fn wotr_get(
         w: *mut WOTRInstance,
         offset: *const size_t,
