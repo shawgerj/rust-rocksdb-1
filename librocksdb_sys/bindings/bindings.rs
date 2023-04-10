@@ -1428,6 +1428,25 @@ extern "C" {
     ) -> *mut crocksdb_pinnableslice_t;
 }
 extern "C" {
+    pub fn crocksdb_pget_external(
+        db: *mut crocksdb_t,
+        options: *const crocksdb_readoptions_t,
+        key: *const libc::c_char,
+        keylen: size_t,
+        errptr: *mut *mut libc::c_char,
+    ) -> *mut crocksdb_pinnableslice_t;
+}
+extern "C" {
+    pub fn crocksdb_pget_external_cf(
+        db: *mut crocksdb_t,
+        options: *const crocksdb_readoptions_t,
+        column_family: *mut crocksdb_column_family_handle_t,
+        key: *const libc::c_char,
+        keylen: size_t,
+        errptr: *mut *mut libc::c_char,
+    ) -> *mut crocksdb_pinnableslice_t;
+}
+extern "C" {
     pub fn crocksdb_get_cf(
         db: *mut crocksdb_t,
         options: *const crocksdb_readoptions_t,
@@ -5687,6 +5706,14 @@ extern "C" {
         data: *mut *mut libc::c_char,
         len: *mut size_t,
         version: size_t,
+    ) -> libc::c_int;
+}
+extern "C" {
+    pub fn wotr_p_get(
+        w: *mut wotr_t,
+        offset: size_t,
+        len: size_t,
+        data: *mut *mut libc::c_char,
     ) -> libc::c_int;
 }
 extern "C" {

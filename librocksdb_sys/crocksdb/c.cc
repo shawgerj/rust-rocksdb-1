@@ -1212,6 +1212,45 @@ crocksdb_pinnableslice_t* crocksdb_get_external_cf(
 
 }
 
+crocksdb_pinnableslice_t* crocksdb_pget_external(
+  crocksdb_t* db,
+  const crocksdb_readoptions_t* options,
+  const char* key, size_t keylen,
+  char** errptr) {
+  crocksdb_pinnableslice_t* v = new (crocksdb_pinnableslice_t);
+  Status s = db->rep->GetPExternal(options->rep, db->rep->DefaultColumnFamily(), Slice(key, keylen), &v->rep);
+  
+  if (!s.ok()) {
+    delete(v);
+    if (!s.IsNotFound()) {
+      SaveError(errptr, s);
+    }
+    return nullptr;
+  }
+  return v;
+
+}
+
+crocksdb_pinnableslice_t* crocksdb_pget_external_cf(
+  crocksdb_t* db,
+  const crocksdb_readoptions_t* options,
+  crocksdb_column_family_handle_t* column_family,
+  const char* key, size_t keylen,
+  char** errptr) {
+  crocksdb_pinnableslice_t* v = new (crocksdb_pinnableslice_t);
+  Status s = db->rep->GetPExternal(options->rep, column_family->rep, Slice(key, keylen), &v->rep);
+  
+  if (!s.ok()) {
+    delete(v);
+    if (!s.IsNotFound()) {
+      SaveError(errptr, s);
+    }
+    return nullptr;
+  }
+  return v;
+
+}
+
 char* crocksdb_get_cf(crocksdb_t* db, const crocksdb_readoptions_t* options,
                       crocksdb_column_family_handle_t* column_family,
                       const char* key, size_t keylen, size_t* vallen,

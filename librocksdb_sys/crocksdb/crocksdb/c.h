@@ -423,6 +423,15 @@ extern C_ROCKSDB_LIBRARY_API crocksdb_pinnableslice_t* crocksdb_get_external_cf(
     crocksdb_column_family_handle_t* column_family, const char* key,
     size_t keylen, char** errptr);
 
+extern C_ROCKSDB_LIBRARY_API crocksdb_pinnableslice_t* crocksdb_pget_external(
+    crocksdb_t* db, const crocksdb_readoptions_t* options, const char* key,
+    size_t keylen, char** errptr);
+    
+extern C_ROCKSDB_LIBRARY_API crocksdb_pinnableslice_t* crocksdb_pget_external_cf(
+    crocksdb_t* db, const crocksdb_readoptions_t* options,
+    crocksdb_column_family_handle_t* column_family, const char* key,
+    size_t keylen, char** errptr);
+
 extern C_ROCKSDB_LIBRARY_API char* crocksdb_get_cf(
     crocksdb_t* db, const crocksdb_readoptions_t* options,
     crocksdb_column_family_handle_t* column_family, const char* key,

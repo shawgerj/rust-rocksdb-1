@@ -1061,6 +1061,21 @@ extern "C" {
         kLen: size_t,
         err: *mut *mut c_char,
     ) -> *mut DBPinnableSlice;
+    pub fn crocksdb_pget_external(
+        db: *const DBInstance,
+        readopts: *const DBReadOptions,
+        k: *const u8,
+        kLen: size_t,
+        err: *mut *mut c_char,
+    ) -> *mut DBPinnableSlice;
+    pub fn crocksdb_pget_external_cf(
+        db: *const DBInstance,
+        readopts: *const DBReadOptions,
+        cf_handle: *mut DBCFHandle,
+        k: *const u8,
+        kLen: size_t,
+        err: *mut *mut c_char,
+    ) -> *mut DBPinnableSlice;
     pub fn crocksdb_get_cf(
         db: *const DBInstance,
         readopts: *const DBReadOptions,
