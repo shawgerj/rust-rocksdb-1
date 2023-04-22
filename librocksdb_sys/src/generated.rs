@@ -234,6 +234,7 @@ pub enum DBStatisticsHistogramType {
     DbWriteWalTime = 48,
     DbWriteWotrTime = 49,
     HistogramEnumMax = 50,
+    WotrFileSyncMicros = 51,
     TitanKeySize,
     TitanValueSize,
     TitanGetMicros,
