@@ -2269,6 +2269,8 @@ crocksdb_perf_context_find_next_user_entry_time(crocksdb_perf_context_t*);
 extern C_ROCKSDB_LIBRARY_API uint64_t
 crocksdb_perf_context_write_wal_time(crocksdb_perf_context_t*);
 extern C_ROCKSDB_LIBRARY_API uint64_t
+crocksdb_perf_context_write_wotr_time(crocksdb_perf_context_t*);    
+extern C_ROCKSDB_LIBRARY_API uint64_t
 crocksdb_perf_context_write_memtable_time(crocksdb_perf_context_t*);
 extern C_ROCKSDB_LIBRARY_API uint64_t
 crocksdb_perf_context_write_delay_time(crocksdb_perf_context_t*);

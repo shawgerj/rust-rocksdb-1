@@ -206,6 +206,10 @@ impl PerfContext {
         unsafe { crocksdb_ffi::crocksdb_perf_context_write_wal_time(self.inner) }
     }
 
+    pub fn write_wotr_time(&self) -> u64 {
+        unsafe { crocksdb_ffi::crocksdb_perf_context_write_wotr_time(self.inner) }
+    }
+
     pub fn write_memtable_time(&self) -> u64 {
         unsafe { crocksdb_ffi::crocksdb_perf_context_write_memtable_time(self.inner) }
     }

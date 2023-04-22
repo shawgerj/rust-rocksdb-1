@@ -5882,6 +5882,10 @@ uint64_t crocksdb_perf_context_find_next_user_entry_time(
 uint64_t crocksdb_perf_context_write_wal_time(crocksdb_perf_context_t* ctx) {
   return ctx->rep.write_wal_time;
 }
+  
+uint64_t crocksdb_perf_context_write_wotr_time(crocksdb_perf_context_t* ctx) {
+  return ctx->rep.write_wotr_time;
+}
 
 uint64_t crocksdb_perf_context_write_memtable_time(
     crocksdb_perf_context_t* ctx) {

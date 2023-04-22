@@ -4918,6 +4918,9 @@ extern "C" {
     pub fn crocksdb_perf_context_write_wal_time(arg1: *mut crocksdb_perf_context_t) -> u64;
 }
 extern "C" {
+    pub fn crocksdb_perf_context_write_wotr_time(arg1: *mut crocksdb_perf_context_t) -> u64;
+}
+extern "C" {
     pub fn crocksdb_perf_context_write_memtable_time(arg1: *mut crocksdb_perf_context_t) -> u64;
 }
 extern "C" {
