@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#![feature(c_variadic)]
+//#![feature(c_variadic)]
 
 extern crate bzip2_sys;
 extern crate libc;
@@ -667,6 +667,7 @@ extern "C" {
     pub fn crocksdb_options_set_max_open_files(options: *mut Options, files: c_int);
     pub fn crocksdb_options_set_max_total_wal_size(options: *mut Options, size: u64);
     pub fn crocksdb_options_set_use_fsync(options: *mut Options, v: c_int);
+    pub fn crocksdb_options_set_avoid_flush_during_shutdown(options: *mut Options, v: c_int);
     pub fn crocksdb_options_set_bytes_per_sync(options: *mut Options, bytes: u64);
     pub fn crocksdb_options_set_enable_pipelined_write(options: *mut Options, v: bool);
     pub fn crocksdb_options_set_enable_multi_batch_write(options: *mut Options, v: bool);
@@ -943,9 +944,10 @@ extern "C" {
         error_if_log_file_exist: bool,
         err: *mut *mut c_char,
     ) -> *mut DBInstance;
-    pub fn crocksdb_set_wotr(
+    pub fn crocksdb_set_external(
         db: *mut DBInstance,
         w: *mut WOTRInstance,
+        recovery: bool,
         err: *mut *mut c_char,
     );
     pub fn crocksdb_writeoptions_create() -> *mut DBWriteOptions;

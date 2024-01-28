@@ -777,6 +777,16 @@ impl DBOptions {
         }
     }
 
+    pub fn set_avoid_flush_during_shutdown(&mut self, useit: bool) {
+        unsafe {
+            if useit {
+                crocksdb_ffi::crocksdb_options_set_avoid_flush_during_shutdown(self.inner, 1)
+            } else {
+                crocksdb_ffi::crocksdb_options_set_avoid_flush_during_shutdown(self.inner, 0)
+            }
+        }
+    }
+
     pub fn set_bytes_per_sync(&mut self, nbytes: u64) {
         unsafe {
             crocksdb_ffi::crocksdb_options_set_bytes_per_sync(self.inner, nbytes);

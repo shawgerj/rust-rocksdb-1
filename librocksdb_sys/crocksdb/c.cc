@@ -741,8 +741,8 @@ crocksdb_t* crocksdb_open_for_read_only(const crocksdb_options_t* options,
   return result;
 }
 
-void crocksdb_set_wotr(crocksdb_t* db, wotr_t* w, char** errptr) {
-  SaveError(errptr, db->rep->SetWotr(w->rep));
+void crocksdb_set_external(crocksdb_t* db, wotr_t* w, unsigned char recovery, char** errptr) {
+  SaveError(errptr, db->rep->SetExternal(w->rep, recovery));
 }
 
 void crocksdb_status_ptr_get_error(crocksdb_status_ptr_t* status,
@@ -2948,6 +2948,10 @@ void crocksdb_options_set_memtable_insert_with_hint_prefix_extractor(
 
 void crocksdb_options_set_use_fsync(crocksdb_options_t* opt, int use_fsync) {
   opt->rep.use_fsync = use_fsync;
+}
+
+void crocksdb_options_set_avoid_flush_during_shutdown(crocksdb_options_t* opt, int avoid_flush) {
+  opt->rep.avoid_flush_during_shutdown = avoid_flush;
 }
 
 void crocksdb_options_set_db_paths(crocksdb_options_t* opt,

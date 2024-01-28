@@ -49,7 +49,7 @@ extern "C" fn name(transform: *mut c_void) -> *const c_char {
 
 extern "C" fn destructor(transform: *mut c_void) {
     unsafe {
-        Box::from_raw(transform as *mut SliceTransformProxy);
+        let _ = Box::from_raw(transform as *mut SliceTransformProxy);
     }
 }
 

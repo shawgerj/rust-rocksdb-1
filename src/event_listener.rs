@@ -231,7 +231,7 @@ pub trait EventListener: Send + Sync {
 
 extern "C" fn destructor<E: EventListener>(ctx: *mut c_void) {
     unsafe {
-        Box::from_raw(ctx as *mut E);
+        let _ = Box::from_raw(ctx as *mut E);
     }
 }
 

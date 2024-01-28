@@ -56,7 +56,7 @@ extern "C" fn name<T: TablePropertiesCollector>(handle: *mut c_void) -> *const c
 
 extern "C" fn destruct<T: TablePropertiesCollector>(handle: *mut c_void) {
     unsafe {
-        Box::from_raw(handle as *mut TablePropertiesCollectorHandle<T>);
+        let _ = Box::from_raw(handle as *mut TablePropertiesCollectorHandle<T>);
     }
 }
 

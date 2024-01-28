@@ -488,11 +488,18 @@ pub struct KeyVersion {
 }
 
 impl DB {
-    pub fn set_wotr(&self, w: &WOTR) -> Result<(), String> {
+    pub fn set_wotr(&self, w: &WOTR, recovery: bool) -> Result<(), String> {
         unsafe {
-            ffi_try!(crocksdb_set_wotr(self.inner, w.inner))
+            ffi_try!(crocksdb_set_external(self.inner, w.inner, recovery))
         }
         Ok(())
+    }
+
+    pub fn close(&mut self) {
+        unsafe {
+//            self.cfs.clear();
+            crocksdb_ffi::crocksdb_close(self.inner);
+        }
     }
 
     pub fn open_default(path: &str) -> Result<DB, String> {
@@ -2198,6 +2205,7 @@ impl Writable for DB {
     ) -> Result<(), String> {
         self.delete_range_cf_opt(cf, begin_key, end_key, &WriteOptions::new())
     }
+
 }
 
 impl Drop for DB {
@@ -2212,8 +2220,8 @@ impl Drop for DB {
         unsafe {
             self.cfs.clear();
             crocksdb_ffi::crocksdb_close(self.inner);
-        }
-    }
+        } 
+   }
 }
 
 pub struct WOTR {
@@ -3128,7 +3136,7 @@ mod test {
 
         let logpath = setup_wotr_logpath(&path, "wotrlog_test_set");
         let w = WOTR::wotr_init(&logpath).unwrap();
-        assert!(db.set_wotr(&w).is_ok());
+        assert!(db.set_wotr(&w, false).is_ok());
     }
 
     #[test]    
@@ -3139,10 +3147,10 @@ mod test {
 
         let logpath = setup_wotr_logpath(&path, "wotrlog_test_putget");
         let w = WOTR::wotr_init(&logpath).unwrap();
-        assert!(db.set_wotr(&w).is_ok());
+        assert!(db.set_wotr(&w, false).is_ok());
 
-        let offset = db.put_external(b"k1", b"v1111").unwrap();
-        let offset2 = db.put_external(b"k2", b"v2222").unwrap();
+        let _offset = db.put_external(b"k1", b"v1111").unwrap();
+        let _offset2 = db.put_external(b"k2", b"v2222").unwrap();
         let r = db.get_external(b"k1", &ReadOptions::new());
         assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
         let r2 = db.get_external(b"k2", &ReadOptions::new());
@@ -3157,7 +3165,7 @@ mod test {
 
         let logpath = setup_wotr_logpath(&path, "wotrlog_test_rw");
         let w = WOTR::wotr_init(&logpath).unwrap();
-        assert!(db.set_wotr(&w).is_ok());
+        assert!(db.set_wotr(&w, false).is_ok());
 
         let wb = WriteBatch::new();
         let _ = wb.put(b"k1", b"v1111");
@@ -3175,6 +3183,55 @@ mod test {
     }
 
     #[test]    
+    fn test_wotr_rocksdb_rw_recovery() {
+        let path = tempdir_with_prefix("_rust_rocksdb_wotr_rw_recovery");
+        let pathstr = path.path().to_str().unwrap();
+        let logpath = setup_wotr_logpath(&path, "wotrlog_test_recovery");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+
+        {
+            let mut opts = DBOptions::new();
+            opts.create_if_missing(true);
+            opts.set_avoid_flush_during_shutdown(true);
+            let db = DB::open(opts, pathstr).unwrap();
+            assert!(db.set_wotr(&w, false).is_ok());
+
+            let wb = WriteBatch::new();
+            let _ = wb.put(b"k1", b"v1111");
+            let _ = wb.put(b"k2", b"v2222");
+            let mut options = WriteOptions::new();
+            options.disable_wal(true);
+
+            let offsets = db.write_wotr(&wb, &options).unwrap();
+            // test that there are two offsets and both are not zero
+            assert!(offsets.len() == 2);
+            assert!(offsets[1] != 0);
+
+            let r = db.get_external(b"k1", &ReadOptions::new());
+            assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
+            let r2 = db.get_external(b"k2", &ReadOptions::new());
+            assert!(r2.unwrap().unwrap().to_utf8().unwrap() == "v2222");
+        }
+
+        {
+            // reopen DB with same paths
+            let db = DB::open_default(pathstr).unwrap();
+            assert!(db.set_wotr(&w, false).is_ok());
+
+            // should not find k1
+            assert!(db.get_external(b"k1", &ReadOptions::new()).unwrap().is_none());
+        }
+
+        {
+            let db = DB::open_default(pathstr).unwrap();
+            assert!(db.set_wotr(&w, true).is_ok()); // recover this time
+
+            let r = db.get_external(b"k1", &ReadOptions::new());
+            assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
+        }
+    }
+
+    #[test]    
     fn test_wotr_rocksdb_multib() {
         let mut opts = DBOptions::new();
         opts.create_if_missing(true);
@@ -3185,7 +3242,7 @@ mod test {
 
         let logpath = setup_wotr_logpath(&path, "wotrlog_test_rw");
         let w = WOTR::wotr_init(&logpath).unwrap();
-        assert!(db.set_wotr(&w).is_ok());
+        assert!(db.set_wotr(&w, false).is_ok());
 
         let mut data = Vec::new();
         for s in &[b"ab", b"cd", b"ef"] {
@@ -3193,7 +3250,7 @@ mod test {
             w.put(s.to_vec().as_slice(), b"a").unwrap();
             data.push(w);
         }
-        let offsets = db.multib_write_wotr(&data, &WriteOptions::new()).unwrap();
+        let _offsets = db.multib_write_wotr(&data, &WriteOptions::new()).unwrap();
         for s in &[b"ab", b"cd", b"ef"] {
             let v = db.get_external(s.to_vec().as_slice(),
                                     &ReadOptions::new()).unwrap();
@@ -3218,8 +3275,8 @@ mod test {
 
         let logpath = setup_wotr_logpath(&db1_path, "wotrlog_test_multidb");
         let w = WOTR::wotr_init(&logpath).unwrap();
-        assert!(db1.set_wotr(&w).is_ok());
-        assert!(db2.set_wotr(&w).is_ok());
+        assert!(db1.set_wotr(&w, false).is_ok());
+        assert!(db2.set_wotr(&w, false).is_ok());
 
         // write KVs to db1 and WOTR
         let wb = WriteBatch::new();
@@ -3232,7 +3289,7 @@ mod test {
         let wb_offsets = WriteBatch::new();
         let _ = wb_offsets.put(b"k1", offsets[0].to_string().as_bytes());
         let _ = wb_offsets.put(b"k2", offsets[1].to_string().as_bytes());
-        let db2_res = db2.write(&wb_offsets).unwrap();
+        assert!(db2.write(&wb_offsets).is_ok());
 
         // get values from db2 using get_external
         let r = db2.get_external(b"k1", &ReadOptions::new());
@@ -3253,8 +3310,8 @@ mod test {
 
         let logpath = setup_wotr_logpath(&db1_path, "wotrlog_test_multidb");
         let w = WOTR::wotr_init(&logpath).unwrap();
-        assert!(db1.set_wotr(&w).is_ok());
-        assert!(db2.set_wotr(&w).is_ok());
+        assert!(db1.set_wotr(&w, false).is_ok());
+        assert!(db2.set_wotr(&w, false).is_ok());
 
         let wb1 = WriteBatch::new();
         let _ = wb1.put(b"k1", b"v1111");
@@ -3264,7 +3321,8 @@ mod test {
         let wb1_offsets = WriteBatch::new();
         let _ = wb1_offsets.put(b"k1", offsets[0].to_string().as_bytes());
         let _ = wb1_offsets.put(b"k2", offsets[1].to_string().as_bytes());
-        let r1_offsets = db2.write(&wb1_offsets).unwrap();
+        assert!(db2.write(&wb1_offsets).is_ok());
+
 
         let wb2 = WriteBatch::new();
         let _ = wb2.put(b"k3", b"v3333");
@@ -3274,7 +3332,7 @@ mod test {
         let wb2_offsets = WriteBatch::new();
         let _ = wb2_offsets.put(b"k3", offsets[0].to_string().as_bytes());
         let _ = wb2_offsets.put(b"k4", offsets[1].to_string().as_bytes());
-        let r2_offsets = db1.write(&wb2_offsets).unwrap();
+        assert!(db1.write(&wb2_offsets).is_ok());
 
         // get values from db1 and db2 using get_external
         let r = db2.get_external(b"k1", &ReadOptions::new());
@@ -3761,7 +3819,7 @@ mod test {
     #[test]
     fn test_load_latest_options() {
         let path = tempdir_with_prefix("_rust_rocksdb_load_latest_option");
-        let dbpath = path.path().to_str().unwrap().clone();
+        let dbpath = path.path().to_str().unwrap();
         let cf_name: &str = "cf_dynamic_level_bytes";
 
         // test when options not exist
@@ -3775,8 +3833,8 @@ mod test {
 
         let mut cf_opts = ColumnFamilyOptions::new();
         cf_opts.set_level_compaction_dynamic_level_bytes(true);
-        db.create_cf((cf_name.clone(), cf_opts)).unwrap();
-        let cf_handle = db.cf_handle(cf_name.clone()).unwrap();
+        db.create_cf((cf_name, cf_opts)).unwrap();
+        let cf_handle = db.cf_handle(cf_name).unwrap();
         let cf_opts = db.get_options_cf(cf_handle);
         assert!(cf_opts.get_level_compaction_dynamic_level_bytes());
 
@@ -3869,7 +3927,7 @@ mod test {
             let mut db = DB::open(opts, path.path().to_str().unwrap()).unwrap();
             let logpath = setup_wotr_logpath(&path, "wotrlog_test_atomicflush");
             let w = WOTR::wotr_init(&logpath).unwrap();
-            assert!(db.set_wotr(&w).is_ok());
+            assert!(db.set_wotr(&w, false).is_ok());
             
             let wb = WriteBatch::new();
             for (cf, cf_opts) in cfs.iter().zip(cfs_opts.iter().cloned()) {
@@ -3896,7 +3954,7 @@ mod test {
             .unwrap();
         let logpath = setup_wotr_logpath(&path, "wotrlog_test_atomicflush");
         let w = WOTR::wotr_init(&logpath).unwrap();
-        assert!(db.set_wotr(&w).is_ok());
+        assert!(db.set_wotr(&w, false).is_ok());
         
         for cf in &cfs {
             let handle = db.cf_handle(cf).unwrap();
@@ -3907,7 +3965,7 @@ mod test {
     #[test]
     fn test_map_property() {
         let path = tempdir_with_prefix("_rust_rocksdb_get_map_property");
-        let dbpath = path.path().to_str().unwrap().clone();
+        let dbpath = path.path().to_str().unwrap();
 
         let mut opts = DBOptions::new();
         opts.create_if_missing(true);

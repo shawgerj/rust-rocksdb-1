@@ -238,8 +238,8 @@ extern C_ROCKSDB_LIBRARY_API crocksdb_t* crocksdb_open_for_read_only(
     const crocksdb_options_t* options, const char* name,
     unsigned char error_if_log_file_exist, char** errptr);
 
-extern C_ROCKSDB_LIBRARY_API void crocksdb_set_wotr(
-    crocksdb_t* db, wotr_t* w, char** errptr);
+extern C_ROCKSDB_LIBRARY_API void crocksdb_set_external(
+    crocksdb_t* db, wotr_t* w, unsigned char recovery, char** errptr);
 
 extern C_ROCKSDB_LIBRARY_API void crocksdb_status_ptr_get_error(
     crocksdb_status_ptr_t*, char** errptr);
@@ -1207,6 +1207,8 @@ crocksdb_options_set_writable_file_max_buffer_size(crocksdb_options_t*, int);
 extern C_ROCKSDB_LIBRARY_API void crocksdb_options_set_arena_block_size(
     crocksdb_options_t*, size_t);
 extern C_ROCKSDB_LIBRARY_API void crocksdb_options_set_use_fsync(
+    crocksdb_options_t*, int);
+extern C_ROCKSDB_LIBRARY_API void crocksdb_options_set_avoid_flush_during_shutdown(
     crocksdb_options_t*, int);
 extern C_ROCKSDB_LIBRARY_API void crocksdb_options_set_db_paths(
     crocksdb_options_t*, const char* const*, const size_t*, const uint64_t*,

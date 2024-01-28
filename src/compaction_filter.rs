@@ -83,7 +83,7 @@ extern "C" fn name(filter: *mut c_void) -> *const c_char {
 
 extern "C" fn destructor(filter: *mut c_void) {
     unsafe {
-        Box::from_raw(filter as *mut CompactionFilterProxy);
+        let _ = Box::from_raw(filter as *mut CompactionFilterProxy);
     }
 }
 
@@ -259,7 +259,7 @@ mod factory {
 
     pub(super) extern "C" fn destructor(factory: *mut c_void) {
         unsafe {
-            Box::from_raw(factory as *mut CompactionFilterFactoryProxy);
+            let _ = Box::from_raw(factory as *mut CompactionFilterFactoryProxy);
         }
     }
 
@@ -372,8 +372,8 @@ mod tests {
         ) -> *mut DBCompactionFilter {
             let start_key = context.start_key();
             let end_key = context.end_key();
-            &self.0.send(start_key.to_owned()).unwrap();
-            &self.0.send(end_key.to_owned()).unwrap();
+            let _ = &self.0.send(start_key.to_owned()).unwrap();
+            let _ = &self.0.send(end_key.to_owned()).unwrap();
 
             unsafe {
                 new_compaction_filter_raw(

@@ -1,4 +1,4 @@
-#![feature(c_variadic)]
+//#![feature(c_variadic)]
 extern crate crc;
 extern crate libc;
 extern crate rand;
