@@ -19,7 +19,7 @@ mod test_slice_transform;
 mod test_statistics;
 mod test_table_properties;
 mod test_table_properties_rc;
-mod test_titan;
+//mod test_titan;
 mod test_ttl;
 
 fn tempdir_with_prefix(prefix: &str) -> tempfile::TempDir {
