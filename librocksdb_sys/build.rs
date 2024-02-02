@@ -153,7 +153,7 @@ fn build_rocksdb(build: &mut Build) {
 //    configure_jemalloc(&mut cfg);
     configure_common_rocksdb_args(&mut cfg, "rocksdb");
     let dst = cfg
-        .define("CMAKE_BUILD_TYPE", "Debug")
+        .define("CMAKE_BUILD_TYPE", "Release")
         .define("WITH_TESTS", "OFF")
         .define("WITH_TOOLS", "OFF")
         .build_target("rocksdb")
