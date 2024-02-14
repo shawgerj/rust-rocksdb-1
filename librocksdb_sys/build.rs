@@ -55,8 +55,8 @@ fn main() {
     patch_libz_env();
     let mut build = Build::new();
     build_wotr(&mut build);
-    build_titan(&mut build);
     build_rocksdb(&mut build);
+    build_titan(&mut build);
 
     println!("cargo:rerun-if-changed=crocksdb/crocksdb/c.h");
     println!("cargo:rerun-if-changed=crocksdb/c.cc");
@@ -153,7 +153,7 @@ fn build_rocksdb(build: &mut Build) {
 //    configure_jemalloc(&mut cfg);
     configure_common_rocksdb_args(&mut cfg, "rocksdb");
     let dst = cfg
-        .define("CMAKE_BUILD_TYPE", "Release")
+//        .define("CMAKE_BUILD_TYPE", "Release")
         .define("WITH_TESTS", "OFF")
         .define("WITH_TOOLS", "OFF")
         .build_target("rocksdb")
