@@ -166,6 +166,7 @@ fn build_rocksdb() -> Build {
         .define("WITH_SNAPPY", "ON")
         .define("WITH_TESTS", "OFF")
         .define("WITH_TOOLS", "OFF")
+	.define("WITH_DELAY", "ON")
         .build_target("rocksdb")
         .very_verbose(true)
         .build();

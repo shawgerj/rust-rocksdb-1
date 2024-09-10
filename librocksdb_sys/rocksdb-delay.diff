@@ -1,0 +1,43 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b66f0dfae..c3f1e696f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -142,6 +142,11 @@ else()
+   endif()
+ endif()
+ 
++if(WITH_DELAY)
++  add_definitions(-DDELAY_MICROS=4)
++endif()
++
++
+ string(TIMESTAMP GIT_DATE_TIME "%Y/%m/%d %H:%M:%S" UTC)
+ 
+ find_package(Git)
+diff --git a/db/db_impl/db_impl_write.cc b/db/db_impl/db_impl_write.cc
+index 0c0210aca..48a755ba1 100644
+--- a/db/db_impl/db_impl_write.cc
++++ b/db/db_impl/db_impl_write.cc
+@@ -12,7 +12,7 @@
+ #define __STDC_FORMAT_MACROS
+ #endif
+ #include <inttypes.h>
+-
++#include <time.h>
+ #include <iostream>
+ 
+ #include "db/error_handler.h"
+@@ -242,6 +242,13 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
+                          bool disable_memtable, uint64_t* seq_used,
+                          size_t batch_cnt,
+                          PreReleaseCallback* pre_release_callback) {
++
++  struct timespec req = {
++    .tv_sec = 0,
++    .tv_nsec = 1000 * DELAY_MICROS
++  };
++  
++  nanosleep(&req, NULL);
+   assert(!seq_per_batch_ || batch_cnt != 0);
+   if (my_batch == nullptr) {
+     return Status::Corruption("Batch is nullptr!");
