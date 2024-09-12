@@ -45,6 +45,7 @@ use table_properties_collector_factory::{
 };
 use titan::TitanDBOptions;
 use TablePropertiesCollector;
+use std::fmt::{self, Formatter, Error};
 
 #[derive(Default, Debug)]
 pub struct HistogramData {
@@ -509,6 +510,12 @@ impl Default for WriteOptions {
             "Could not create rocksdb write options"
         );
         WriteOptions { inner: write_opts }
+    }
+}
+
+impl std::fmt::Debug for WriteOptions {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "wopts")
     }
 }
 

@@ -19,6 +19,8 @@
 
 extern crate core;
 extern crate libc;
+extern crate log;
+extern crate hex;
 #[macro_use]
 pub extern crate librocksdb_sys;
 #[cfg(test)]

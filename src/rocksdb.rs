@@ -28,7 +28,7 @@ use rocksdb_options::{
 };
 use std::collections::BTreeMap;
 use std::ffi::{CStr, CString};
-use std::fmt::{self, Debug, Formatter};
+use std::fmt::{self, Debug, Formatter, Error};
 use std::io;
 use std::mem;
 use std::ops::Deref;
@@ -37,6 +37,9 @@ use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
 use std::{fs, ptr, slice};
+
+use log::info;
+use hex;
 
 #[cfg(feature = "encryption")]
 use encryption::{DBEncryptionKeyManager, EncryptionKeyManager};
@@ -61,6 +64,12 @@ impl Drop for CFHandle {
         unsafe {
             crocksdb_ffi::crocksdb_column_family_handle_destroy(self.inner);
         }
+    }
+}
+
+impl Debug for CFHandle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "cfhandle")
     }
 }
 
@@ -417,6 +426,7 @@ impl<D: Deref<Target = DB>> Snapshot<D> {
     }
 
     pub fn get(&self, key: &[u8]) -> Result<Option<DBVector>, String> {
+        println!("get key: {}", hex::encode(&key));
         let mut readopts = ReadOptions::new();
         unsafe {
             readopts.set_snapshot(&self.snap);
@@ -425,6 +435,7 @@ impl<D: Deref<Target = DB>> Snapshot<D> {
     }
 
     pub fn get_cf(&self, cf: &CFHandle, key: &[u8]) -> Result<Option<DBVector>, String> {
+        println!("get_cf key: {}", hex::encode(&key));
         let mut readopts = ReadOptions::new();
         unsafe {
             readopts.set_snapshot(&self.snap);
@@ -831,6 +842,7 @@ impl DB {
     }
 
     pub fn get_opt(&self, key: &[u8], readopts: &ReadOptions) -> Result<Option<DBVector>, String> {
+        println!("get key: {}", hex::encode(&key));
         unsafe {
             let val = ffi_try!(crocksdb_get_pinned(
                 self.inner,
@@ -857,6 +869,7 @@ impl DB {
         readopts: &ReadOptions,
     ) -> Result<Option<DBVector>, String> {
         unsafe {
+            println!("get_cf key: {}", hex::encode(&key));
             let val = ffi_try!(crocksdb_get_pinned_cf(
                 self.inner,
                 readopts.get_inner(),
@@ -1000,6 +1013,7 @@ impl DB {
         writeopts: &WriteOptions,
     ) -> Result<(), String> {
         unsafe {
+            println!("put key: {}", hex::encode(&key));
             ffi_try!(crocksdb_put(
                 self.inner,
                 writeopts.inner,
@@ -1020,6 +1034,7 @@ impl DB {
         writeopts: &WriteOptions,
     ) -> Result<(), String> {
         unsafe {
+            println!("put_cf key: {}", hex::encode(&key));
             ffi_try!(crocksdb_put_cf(
                 self.inner,
                 writeopts.inner,
@@ -1032,6 +1047,7 @@ impl DB {
             Ok(())
         }
     }
+
     pub fn merge_opt(
         &self,
         key: &[u8],
@@ -1050,6 +1066,7 @@ impl DB {
             Ok(())
         }
     }
+
     fn merge_cf_opt(
         &self,
         cf: &CFHandle,
@@ -1070,6 +1087,7 @@ impl DB {
             Ok(())
         }
     }
+
     fn delete_opt(&self, key: &[u8], writeopts: &WriteOptions) -> Result<(), String> {
         unsafe {
             ffi_try!(crocksdb_delete(
@@ -1155,6 +1173,7 @@ impl DB {
     /// If wait, the flush will wait until the flush is done.
     pub fn flush(&self, wait: bool) -> Result<(), String> {
         unsafe {
+            info!("FLUSH");
             let mut opts = FlushOptions::new();
             opts.set_wait(wait);
             ffi_try!(crocksdb_flush(self.inner, opts.inner));
@@ -1166,6 +1185,7 @@ impl DB {
     /// If wait, the flush will wait until the flush is done.
     pub fn flush_cf(&self, cf: &CFHandle, wait: bool) -> Result<(), String> {
         unsafe {
+            info!("FLUSHCF");
             let mut opts = FlushOptions::new();
             opts.set_wait(wait);
             ffi_try!(crocksdb_flush_cf(self.inner, cf.inner, opts.inner));
@@ -1181,6 +1201,7 @@ impl DB {
     /// when flush is requested.
     pub fn flush_cfs(&self, cfs: &[&CFHandle], wait: bool) -> Result<(), String> {
         unsafe {
+            info!("FLUSHCFS");
             let cfs: Vec<*mut _> = cfs.iter().map(|cf| cf.inner).collect();
             let mut opts = FlushOptions::new();
             opts.set_wait(wait);
@@ -2044,7 +2065,9 @@ impl Drop for DB {
 
 impl Writable for WriteBatch {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<(), String> {
+        println!("wb_put key: {}", hex::encode(&key));
         unsafe {
+
             crocksdb_ffi::crocksdb_writebatch_put(
                 self.inner,
                 key.as_ptr(),
@@ -2057,6 +2080,7 @@ impl Writable for WriteBatch {
     }
 
     fn put_cf(&self, cf: &CFHandle, key: &[u8], value: &[u8]) -> Result<(), String> {
+        println!("wb_put_cf key: {}", hex::encode(&key));
         unsafe {
             crocksdb_ffi::crocksdb_writebatch_put_cf(
                 self.inner,
@@ -2873,6 +2897,7 @@ mod test {
     use std::string::String;
     use std::thread;
     use write_batch::WriteBatchRef;
+    use tracing_subscriber::*;
 
     use super::*;
     use crate::tempdir_with_prefix;

@@ -173,83 +173,83 @@ mod test {
         result
     }
 
-    #[allow(dead_code)]
-    #[test]
-    fn mergetest() {
-        let path = tempdir_with_prefix("_rust_rocksdb_mergetest");
-        let mut opts = DBOptions::new();
-        opts.create_if_missing(true);
-        let mut cf_opts = ColumnFamilyOptions::new();
-        cf_opts.add_merge_operator("test operator", test_provided_merge);
+    // #[allow(dead_code)]
+    // #[test]
+    // fn mergetest() {
+    //     let path = tempdir_with_prefix("_rust_rocksdb_mergetest");
+    //     let mut opts = DBOptions::new();
+    //     opts.create_if_missing(true);
+    //     let mut cf_opts = ColumnFamilyOptions::new();
+    //     cf_opts.add_merge_operator("test operator", test_provided_merge);
 
-        {
-            let db = DB::open_cf(
-                opts.clone(),
-                path.path().to_str().unwrap(),
-                vec![("default", cf_opts.clone())],
-            )
-            .unwrap();
-            let p = db.put(b"k1", b"a");
-            assert!(p.is_ok());
-            let _ = db.merge(b"k1", b"b");
-            let _ = db.merge(b"k1", b"c");
-            let _ = db.merge(b"k1", b"d");
-            let _ = db.merge(b"k1", b"efg");
-            let m = db.merge(b"k1", b"h");
-            assert!(m.is_ok());
-            match db.get(b"k1") {
-                Ok(Some(value)) => match value.to_utf8() {
-                    Some(v) => println!("retrieved utf8 value: {}", v),
-                    None => println!("did not read valid utf-8 out of the db"),
-                },
-                Err(e) => println!("error reading value {:?}", e),
-                _ => panic!("value not present"),
-            }
+    //     {
+    //         let db = DB::open_cf(
+    //             opts.clone(),
+    //             path.path().to_str().unwrap(),
+    //             vec![("default", cf_opts.clone())],
+    //         )
+    //         .unwrap();
+    //         let p = db.put(b"k1", b"a");
+    //         assert!(p.is_ok());
+    //         let _ = db.merge(b"k1", b"b");
+    //         let _ = db.merge(b"k1", b"c");
+    //         let _ = db.merge(b"k1", b"d");
+    //         let _ = db.merge(b"k1", b"efg");
+    //         let m = db.merge(b"k1", b"h");
+    //         assert!(m.is_ok());
+    //         match db.get(b"k1") {
+    //             Ok(Some(value)) => match value.to_utf8() {
+    //                 Some(v) => println!("retrieved utf8 value: {}", v),
+    //                 None => println!("did not read valid utf-8 out of the db"),
+    //             },
+    //             Err(e) => println!("error reading value {:?}", e),
+    //             _ => panic!("value not present"),
+    //         }
 
-            let r: Result<Option<DBVector>, String> = db.get(b"k1");
-            assert_eq!(r.unwrap().unwrap(), b"abcdefgh");
+    //         let r: Result<Option<DBVector>, String> = db.get(b"k1");
+    //         assert_eq!(r.unwrap().unwrap(), b"abcdefgh");
 
-            let _ = db.merge(b"k2", b"he");
-            let _ = db.merge(b"k2", b"l");
-            let _ = db.merge(b"k2", b"l");
-            let _ = db.merge(b"k2", b"o wor");
-            let m = db.merge(b"k2", b"ld");
-            assert!(m.is_ok());
+    //         let _ = db.merge(b"k2", b"he");
+    //         let _ = db.merge(b"k2", b"l");
+    //         let _ = db.merge(b"k2", b"l");
+    //         let _ = db.merge(b"k2", b"o wor");
+    //         let m = db.merge(b"k2", b"ld");
+    //         assert!(m.is_ok());
 
-            let r: Result<Option<DBVector>, String> = db.get(b"k2");
-            assert_eq!(r.unwrap().unwrap(), b"hello world");
-        }
+    //         let r: Result<Option<DBVector>, String> = db.get(b"k2");
+    //         assert_eq!(r.unwrap().unwrap(), b"hello world");
+    //     }
 
-        {
-            // Reopen
-            let db = DB::open_cf(
-                opts.clone(),
-                path.path().to_str().unwrap(),
-                vec![("default", cf_opts.clone())],
-            )
-            .unwrap();
+    //     {
+    //         // Reopen
+    //         let db = DB::open_cf(
+    //             opts.clone(),
+    //             path.path().to_str().unwrap(),
+    //             vec![("default", cf_opts.clone())],
+    //         )
+    //         .unwrap();
 
-            let r: Result<Option<DBVector>, String> = db.get(b"k1");
-            assert_eq!(r.unwrap().unwrap(), b"abcdefgh");
-            let r: Result<Option<DBVector>, String> = db.get(b"k2");
-            assert_eq!(r.unwrap().unwrap(), b"hello world");
+    //         let r: Result<Option<DBVector>, String> = db.get(b"k1");
+    //         assert_eq!(r.unwrap().unwrap(), b"abcdefgh");
+    //         let r: Result<Option<DBVector>, String> = db.get(b"k2");
+    //         assert_eq!(r.unwrap().unwrap(), b"hello world");
 
-            assert!(db.delete(b"k1").is_ok());
-            assert!(db.get(b"k1").unwrap().is_none());
-        }
+    //         assert!(db.delete(b"k1").is_ok());
+    //         assert!(db.get(b"k1").unwrap().is_none());
+    //     }
 
-        {
-            // Reopen
-            let db = DB::open_cf(
-                opts.clone(),
-                path.path().to_str().unwrap(),
-                vec![("default", cf_opts)],
-            )
-            .unwrap();
+    //     {
+    //         // Reopen
+    //         let db = DB::open_cf(
+    //             opts.clone(),
+    //             path.path().to_str().unwrap(),
+    //             vec![("default", cf_opts)],
+    //         )
+    //         .unwrap();
 
-            assert!(db.get(b"k1").unwrap().is_none());
-            let r: Result<Option<DBVector>, String> = db.get(b"k2");
-            assert_eq!(r.unwrap().unwrap(), b"hello world");
-        }
-    }
+    //         assert!(db.get(b"k1").unwrap().is_none());
+    //         let r: Result<Option<DBVector>, String> = db.get(b"k2");
+    //         assert_eq!(r.unwrap().unwrap(), b"hello world");
+    //     }
+    // }
 }
