@@ -24,6 +24,7 @@ static_libcpp = ["librocksdb_sys/static_libcpp"]
 valgrind = []
 
 [dependencies]
+hex = "0.4.3"
 libc = "0.2.11"
 librocksdb_sys = { path = "librocksdb_sys" }
 
