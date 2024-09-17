@@ -6552,6 +6552,9 @@ extern "C" {
 extern "C" {
     pub fn wotr_iter_read_value(wi: *mut wotr_iter_t) -> *mut libc::c_char;
 }
+extern "C" {
+    pub fn wotr_iter_get_cfid(wi: *mut wotr_iter_t) -> libc::c_int;
+}
 pub type __builtin_va_list = [__va_list_tag; 1usize];
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
