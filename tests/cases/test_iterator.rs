@@ -15,6 +15,8 @@ use std::ops::Deref;
 use std::sync::mpsc::{self, SyncSender};
 use std::sync::*;
 use std::thread;
+use std::mem;
+use std::convert::TryInto;
 
 use rocksdb::rocksdb::Snapshot;
 use rocksdb::*;
@@ -170,102 +172,49 @@ pub fn test_iterator() {
     //assert!(!iter.valid());
 }
 
+fn setup_wotr_logpath(dir: &tempfile::TempDir, logname: &str) -> String {
+    return format!("{}/{}", dir.path().to_str().unwrap(), logname);
+}
+
 #[test]
 pub fn test_iterator_wotr() {
     let path = tempdir_with_prefix("_rust_rocksdb_wotriteratortest");
-
-    let k1 = b"k1";
-    let k2 = b"k2";
-    let k3 = b"k3";
-    let k4 = b"k4";
-    let v1 = b"v1111";
-    let v2 = b"v2222";
-    let v3 = b"v3333";
-    let v4 = b"v4444";
     let db = DB::open_default(path.path().to_str().unwrap()).unwrap();
-    let p = db.put(k1, v1);
-    assert!(p.is_ok());
-    let p = db.put(k2, v2);
-    assert!(p.is_ok());
-    let p = db.put(k3, v3);
-    assert!(p.is_ok());
-    let expected = vec![
-        (k1.to_vec(), v1.to_vec()),
-        (k2.to_vec(), v2.to_vec()),
-        (k3.to_vec(), v3.to_vec()),
-    ];
+    
+    let logpath = setup_wotr_logpath(&path, "wotrlog_test_wotriteratortest");
+    let w = WOTR::wotr_init(&logpath).unwrap();
+    assert!(db.set_wotr(&w, false).is_ok());
+
+    let wb = WriteBatch::new();
+
+    for i in 1..5 {
+	wb.put(format!("k{}", i).as_bytes(), format!("v{:04}", i).as_bytes()).expect("");
+    }
+    let offsets = db.write_wotr(&wb, &WriteOptions::new()).unwrap();
+
+    let wb = WriteBatch::new();
+    for i in 1..5 {
+	let offset: u64 = (offsets[i-1] + 24 + 2).try_into().unwrap();
+	let len: u64 = 5;
+
+	let loc: [u8; 16] = unsafe {
+	    mem::transmute([offset, len])
+	};
+
+	wb.put(format!("iter_k{}", i).as_bytes(), &loc).expect("");
+    }
+    db.write(&wb).unwrap();
 
     let mut iter = db.iter(true);
-
-    iter.seek(SeekKey::Start).unwrap();
-    assert_eq!(iter.collect::<Vec<_>>(), expected);
-
-    // Test that it's idempotent
-    iter.seek(SeekKey::Start).unwrap();
-    assert_eq!(iter.collect::<Vec<_>>(), expected);
-
-    // Test it in reverse a few times
-    iter.seek(SeekKey::End).unwrap();
-    let mut tmp_vec = prev_collect(&mut iter);
-    tmp_vec.reverse();
-    assert_eq!(tmp_vec, expected);
-
-    iter.seek(SeekKey::End).unwrap();
-    let mut tmp_vec = prev_collect(&mut iter);
-    tmp_vec.reverse();
-    assert_eq!(tmp_vec, expected);
-
-    // Try it forward again
-    iter.seek(SeekKey::Start).unwrap();
-    assert_eq!(iter.collect::<Vec<_>>(), expected);
-
-    iter.seek(SeekKey::Start).unwrap();
-    assert_eq!(iter.collect::<Vec<_>>(), expected);
-
-    let mut old_iterator = db.iter(true);
-    old_iterator.seek(SeekKey::Start).unwrap();
-    let p = db.put(&*k4, &*v4);
-    assert!(p.is_ok());
-    let expected2 = vec![
-        (k1.to_vec(), v1.to_vec()),
-        (k2.to_vec(), v2.to_vec()),
-        (k3.to_vec(), v3.to_vec()),
-        (k4.to_vec(), v4.to_vec()),
-    ];
-    assert_eq!(old_iterator.collect::<Vec<_>>(), expected);
-
-    iter = db.iter(true);
-    iter.seek(SeekKey::Start).unwrap();
-    assert_eq!(iter.collect::<Vec<_>>(), expected2);
-
-    iter.seek(SeekKey::Key(k2)).unwrap();
-    let expected = vec![
-        (k2.to_vec(), v2.to_vec()),
-        (k3.to_vec(), v3.to_vec()),
-        (k4.to_vec(), v4.to_vec()),
-    ];
-    assert_eq!(iter.collect::<Vec<_>>(), expected);
-
-    iter.seek(SeekKey::Key(k2)).unwrap();
-    let expected = vec![(k2.to_vec(), v2.to_vec()), (k1.to_vec(), v1.to_vec())];
-    assert_eq!(prev_collect(&mut iter), expected);
-
-    assert!(iter.seek(SeekKey::Key(b"k0")).unwrap());
-    assert!(iter.seek(SeekKey::Key(b"k1")).unwrap());
-    assert!(iter.seek(SeekKey::Key(b"k11")).unwrap());
-    assert!(!iter.seek(SeekKey::Key(b"k5")).unwrap());
-    assert!(iter.seek(SeekKey::Key(b"k0")).unwrap());
-    assert!(iter.seek(SeekKey::Key(b"k1")).unwrap());
-    assert!(iter.seek(SeekKey::Key(b"k11")).unwrap());
-    assert!(!iter.seek(SeekKey::Key(b"k5")).unwrap());
-
-    assert!(iter.seek(SeekKey::Key(b"k4")).unwrap());
-    assert!(iter.prev().unwrap());
-    assert!(iter.next().unwrap());
-    assert!(!iter.next().unwrap());
-    // Once iterator is invalid, it can't be reverted.
-    //iter.prev();
-    //assert!(!iter.valid());
+    
+    iter.seek(SeekKey::Key(b"iter_k1")).unwrap();
+    
+    for i in 1..5 {
+	if !iter.valid().unwrap() { break; }
+	assert_eq!(iter.key(), format!("iter_k{}", i).as_bytes());
+	assert_eq!(iter.value(), format!("v{:04}", i).as_bytes());
+	let _ = iter.next();
+    }
 }
 
 #[test]

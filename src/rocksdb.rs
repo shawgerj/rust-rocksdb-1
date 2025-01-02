@@ -3203,7 +3203,6 @@ mod test {
 	    let loc: [u8; 16] = unsafe {
 		mem::transmute([offset, len])
 	    };
-	    println!("{:?}", &loc);
 	    
 	    wbrocks.put(
 		format!("wotr_key{:04}", i).as_bytes(),
@@ -3331,8 +3330,11 @@ mod test {
 
         // write offsets to db2
         let wb_offsets = WriteBatch::new();
-        let _ = wb_offsets.put(b"k1", offsets[0].to_string().as_bytes());
-        let _ = wb_offsets.put(b"k2", offsets[1].to_string().as_bytes());
+	let k1_offset: [u8; 8] = unsafe { mem::transmute([offsets[0]]) };
+	let k2_offset: [u8; 8] = unsafe { mem::transmute([offsets[1]]) };
+
+        let _ = wb_offsets.put(b"k1", &k1_offset);
+        let _ = wb_offsets.put(b"k2", &k2_offset);
         assert!(db2.write(&wb_offsets).is_ok());
 
         // get values from db2 using get_external
@@ -3363,8 +3365,11 @@ mod test {
 
         let offsets = db1.write_wotr(&wb1, &WriteOptions::new()).unwrap();
         let wb1_offsets = WriteBatch::new();
-        let _ = wb1_offsets.put(b"k1", offsets[0].to_string().as_bytes());
-        let _ = wb1_offsets.put(b"k2", offsets[1].to_string().as_bytes());
+
+	let k1_offset: [u8; 8] = unsafe { mem::transmute([offsets[0]]) };
+	let k2_offset: [u8; 8] = unsafe { mem::transmute([offsets[1]]) };
+        let _ = wb1_offsets.put(b"k1", &k1_offset);
+        let _ = wb1_offsets.put(b"k2", &k2_offset);
         assert!(db2.write(&wb1_offsets).is_ok());
 
 
@@ -3374,8 +3379,10 @@ mod test {
 
         let offsets = db2.write_wotr(&wb2, &WriteOptions::new()).unwrap();
         let wb2_offsets = WriteBatch::new();
-        let _ = wb2_offsets.put(b"k3", offsets[0].to_string().as_bytes());
-        let _ = wb2_offsets.put(b"k4", offsets[1].to_string().as_bytes());
+	let k3_offset: [u8; 8] = unsafe { mem::transmute([offsets[0]]) };
+	let k4_offset: [u8; 8] = unsafe { mem::transmute([offsets[1]]) };
+        let _ = wb2_offsets.put(b"k3", &k3_offset);
+        let _ = wb2_offsets.put(b"k4", &k4_offset);
         assert!(db1.write(&wb2_offsets).is_ok());
 
         // get values from db1 and db2 using get_external
@@ -3485,26 +3492,6 @@ mod test {
         db.put(b"k2", b"v2222").expect("");
         db.put(b"k3", b"v3333").expect("");
         let mut iter = db.iter(false);
-        iter.seek(SeekKey::Start).unwrap();
-        for (k, v) in &mut iter {
-            println!(
-                "Hello {}: {}",
-                str::from_utf8(&*k).unwrap(),
-                str::from_utf8(&*v).unwrap()
-            );
-        }
-    }
-
-    // TODO should fail until we change to putexternal (see above for examples)
-    #[test]
-    fn wotr_iterator_test() {
-        let path = tempdir_with_prefix("_rust_rocksdb_wotriteratortest");
-
-        let db = DB::open_default(path.path().to_str().unwrap()).unwrap();
-        db.put(b"k1", b"v1111").expect("");
-        db.put(b"k2", b"v2222").expect("");
-        db.put(b"k3", b"v3333").expect("");
-        let mut iter = db.iter(true);
         iter.seek(SeekKey::Start).unwrap();
         for (k, v) in &mut iter {
             println!(
