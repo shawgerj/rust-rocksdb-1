@@ -1345,6 +1345,21 @@ crocksdb_iterator_t* crocksdb_create_iterator_cf(
   return result;
 }
 
+crocksdb_iterator_t* crocksdb_create_wotr_iterator(
+    crocksdb_t* db, const crocksdb_readoptions_t* options) {
+  crocksdb_iterator_t* result = new crocksdb_iterator_t;
+  result->rep = db->rep->NewWotrIterator(options->rep);
+  return result;
+}
+
+crocksdb_iterator_t* crocksdb_create_wotr_iterator_cf(
+    crocksdb_t* db, const crocksdb_readoptions_t* options,
+    crocksdb_column_family_handle_t* column_family) {
+  crocksdb_iterator_t* result = new crocksdb_iterator_t;
+  result->rep = db->rep->NewWotrIterator(options->rep, column_family->rep);
+  return result;
+}
+
 void crocksdb_create_iterators(
     crocksdb_t* db, crocksdb_readoptions_t* opts,
     crocksdb_column_family_handle_t** column_families,

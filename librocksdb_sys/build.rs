@@ -119,6 +119,8 @@ fn build_titan(build: &mut Build) {
     figure_link_lib(&dst, "titan");
     build.include(cur_dir.join("titan").join("include"));
     build.include(cur_dir.join("titan"));
+
+    println!("cargo:rustc-link-lib=dylib=tbb"); // Link to TBB
 }
 
 // #[cfg(feature = "jemalloc")]
@@ -188,6 +190,8 @@ fn build_rocksdb(build: &mut Build) {
     println!("cargo:rustc-link-lib=static=lz4");
     println!("cargo:rustc-link-lib=static=zstd");
     println!("cargo:rustc-link-lib=static=snappy");
+//    println!("cargo:rustc-link-search=native={}", dst.display());
+    println!("cargo:rustc-link-lib=dylib=tbb"); // Link to TBB
 }
 
 fn patch_libz_env() {
@@ -216,6 +220,8 @@ fn configure_common_rocksdb_args(cfg: &mut Config, name: &str) {
         cfg.define("FORCE_SSE42", "ON");
     }
     cfg.define("WITH_GFLAGS", "OFF")
+	.register_dep("TBB")
+	.define("WITH_TBB", "ON")
         .register_dep("Z")
         .define("WITH_ZLIB", "ON")
         .register_dep("BZIP2")

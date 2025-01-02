@@ -1096,6 +1096,15 @@ extern "C" {
         readopts: *const DBReadOptions,
         cf_handle: *mut DBCFHandle,
     ) -> *mut DBIterator;
+    pub fn crocksdb_create_wotr_iterator(
+        db: *mut DBInstance,
+        readopts: *const DBReadOptions,
+    ) -> *mut DBIterator;
+    pub fn crocksdb_create_wotr_iterator_cf(
+        db: *mut DBInstance,
+        readopts: *const DBReadOptions,
+        cf_handle: *mut DBCFHandle,
+    ) -> *mut DBIterator;
     pub fn crocksdb_create_snapshot(db: *mut DBInstance) -> *const DBSnapshot;
     pub fn crocksdb_release_snapshot(db: *mut DBInstance, snapshot: *const DBSnapshot);
     pub fn crocksdb_get_snapshot_sequence_number(snapshot: *const DBSnapshot) -> u64;

@@ -1,6 +1,13 @@
 # Generate compile and link flags
 # Extracted from rocksdb/CMakeLists.txt
 
+option(WITH_TBB "build with Threading Building Blocks (TBB)" ON)
+if(WITH_TBB)
+  find_package(TBB REQUIRED)
+  add_definitions(-DTBB)
+  include_directories(${TBB_INCLUDE_DIR})
+  list(APPEND THIRDPARTY_LIBS ${TBB_LIBRARIES})
+endif()
 
 option(WITH_JEMALLOC "build with JeMalloc" OFF)
 if (WITH_JEMALLOC)

@@ -37,7 +37,6 @@ use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
 use std::{fs, ptr, slice};
-use hex;
 
 #[cfg(feature = "encryption")]
 use encryption::{DBEncryptionKeyManager, EncryptionKeyManager};
@@ -194,7 +193,7 @@ impl<'a> From<&'a [u8]> for SeekKey<'a> {
 }
 
 impl<D: Deref<Target = DB>> DBIterator<D> {
-    pub fn new(db: D, readopts: ReadOptions) -> DBIterator<D> {
+    pub fn new(db: D, readopts: ReadOptions, use_wotr: bool) -> DBIterator<D> {
         unsafe {
             let iterator = if db.is_titan() {
                 crocksdb_ffi::ctitandb_create_iterator(
@@ -203,7 +202,11 @@ impl<D: Deref<Target = DB>> DBIterator<D> {
                     readopts.get_titan_inner(),
                 )
             } else {
-                crocksdb_ffi::crocksdb_create_iterator(db.inner, readopts.get_inner())
+		if use_wotr {
+                    crocksdb_ffi::crocksdb_create_wotr_iterator(db.inner, readopts.get_inner())
+		} else {
+		    crocksdb_ffi::crocksdb_create_iterator(db.inner, readopts.get_inner())
+		}
             };
 
             DBIterator {
@@ -214,7 +217,7 @@ impl<D: Deref<Target = DB>> DBIterator<D> {
         }
     }
 
-    pub fn new_cf(db: D, cf_handle: &CFHandle, readopts: ReadOptions) -> DBIterator<D> {
+    pub fn new_cf(db: D, cf_handle: &CFHandle, readopts: ReadOptions, use_wotr: bool) -> DBIterator<D> {
         unsafe {
             let iterator = if db.is_titan() {
                 crocksdb_ffi::ctitandb_create_iterator_cf(
@@ -224,11 +227,19 @@ impl<D: Deref<Target = DB>> DBIterator<D> {
                     cf_handle.inner,
                 )
             } else {
-                crocksdb_ffi::crocksdb_create_iterator_cf(
-                    db.inner,
-                    readopts.get_inner(),
-                    cf_handle.inner,
-                )
+		if use_wotr {
+                    crocksdb_ffi::crocksdb_create_wotr_iterator_cf(
+			db.inner,
+			readopts.get_inner(),
+			cf_handle.inner,
+                    )
+		} else {
+		    crocksdb_ffi::crocksdb_create_iterator_cf(
+			db.inner,
+			readopts.get_inner(),
+			cf_handle.inner,
+                    )
+		}
             };
             DBIterator {
                 _db: db,
@@ -380,11 +391,11 @@ impl<D: Deref<Target = DB> + Clone> Snapshot<D> {
     ///
     /// Please note that, the snapshot struct could be dropped before the iterator
     /// if use improperly, which seems safe though.
-    pub fn iter_opt_clone(&self, mut opt: ReadOptions) -> DBIterator<D> {
+    pub fn iter_opt_clone(&self, mut opt: ReadOptions, use_wotr: bool) -> DBIterator<D> {
         unsafe {
             opt.set_snapshot(&self.snap);
         }
-        DBIterator::new(self.db.clone(), opt)
+        DBIterator::new(self.db.clone(), opt, use_wotr)
     }
 }
 
@@ -398,23 +409,23 @@ impl<D: Deref<Target = DB>> Snapshot<D> {
         }
     }
 
-    pub fn iter(&self) -> DBIterator<&DB> {
+    pub fn iter(&self, use_wotr: bool) -> DBIterator<&DB> {
         let readopts = ReadOptions::new();
-        self.iter_opt(readopts)
+        self.iter_opt(readopts, use_wotr)
     }
 
-    pub fn iter_opt(&self, mut opt: ReadOptions) -> DBIterator<&DB> {
+    pub fn iter_opt(&self, mut opt: ReadOptions, use_wotr: bool) -> DBIterator<&DB> {
         unsafe {
             opt.set_snapshot(&self.snap);
         }
-        DBIterator::new(&self.db, opt)
+        DBIterator::new(&self.db, opt, use_wotr)
     }
 
-    pub fn iter_cf(&self, cf_handle: &CFHandle, mut opt: ReadOptions) -> DBIterator<&DB> {
+    pub fn iter_cf(&self, cf_handle: &CFHandle, mut opt: ReadOptions, use_wotr: bool) -> DBIterator<&DB> {
         unsafe {
             opt.set_snapshot(&self.snap);
         }
-        DBIterator::new_cf(&self.db, cf_handle, opt)
+        DBIterator::new_cf(&self.db, cf_handle, opt, use_wotr)
     }
 
     pub fn get(&self, key: &[u8]) -> Result<Option<DBVector>, String> {
@@ -1102,22 +1113,22 @@ impl DB {
         self.cfs[id].as_ref().map(|h| &h.1)
     }
 
-    pub fn iter(&self) -> DBIterator<&DB> {
+    pub fn iter(&self, use_wotr: bool) -> DBIterator<&DB> {
         let opts = ReadOptions::new();
-        self.iter_opt(opts)
+        self.iter_opt(opts, use_wotr)
     }
 
-    pub fn iter_opt(&self, opt: ReadOptions) -> DBIterator<&DB> {
-        DBIterator::new(&self, opt)
+    pub fn iter_opt(&self, opt: ReadOptions, use_wotr: bool) -> DBIterator<&DB> {
+        DBIterator::new(&self, opt, use_wotr)
     }
 
-    pub fn iter_cf(&self, cf_handle: &CFHandle) -> DBIterator<&DB> {
+    pub fn iter_cf(&self, cf_handle: &CFHandle, use_wotr: bool) -> DBIterator<&DB> {
         let opts = ReadOptions::new();
-        DBIterator::new_cf(self, cf_handle, opts)
+        DBIterator::new_cf(self, cf_handle, opts, use_wotr)
     }
 
-    pub fn iter_cf_opt(&self, cf_handle: &CFHandle, opts: ReadOptions) -> DBIterator<&DB> {
-        DBIterator::new_cf(self, cf_handle, opts)
+    pub fn iter_cf_opt(&self, cf_handle: &CFHandle, opts: ReadOptions, use_wotr: bool) -> DBIterator<&DB> {
+        DBIterator::new_cf(self, cf_handle, opts, use_wotr)
     }
 
     pub fn snapshot(&self) -> Snapshot<&DB> {
