@@ -37,6 +37,7 @@ use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
 use std::{fs, ptr, slice};
+use std::convert::TryInto;
 
 #[cfg(feature = "encryption")]
 use encryption::{DBEncryptionKeyManager, EncryptionKeyManager};
@@ -3169,9 +3170,9 @@ mod test {
         assert!(r2.unwrap().unwrap().to_utf8().unwrap() == "v2222");
     }
 
-    #[test]    
-    fn test_wotr_rocksdb_rw() {
-        let path = tempdir_with_prefix("_rust_rocksdb_wotr_rw");
+    #[test]
+    fn test_wotr_rocksdb_rw_many() {
+        let path = tempdir_with_prefix("_rust_rocksdb_wotr_rw_many");
         let pathstr = path.path().to_str().unwrap();
         let db = DB::open_default(pathstr).unwrap();
 
@@ -3180,18 +3181,49 @@ mod test {
         assert!(db.set_wotr(&w, false).is_ok());
 
         let wb = WriteBatch::new();
-        let _ = wb.put(b"k1", b"v1111");
-        let _ = wb.put(b"k2", b"v2222");
 
+	// put key-value pairs to wotr
+	for i in 1..10 {
+            wb.put(
+                format!("k{:04}", i).as_bytes(),
+                format!("v{:04}", i).as_bytes(),
+            )
+		.expect("");
+        }
+ 
         let offsets = db.write_wotr(&wb, &WriteOptions::new()).unwrap();
-        // test that there are two offsets and both are not zero
-        assert!(offsets.len() == 2);
-        assert!(offsets[1] != 0);
+        assert_eq!(offsets.len(), 9);
 
-        let r = db.get_external(b"k1", &ReadOptions::new());
-        assert!(r.unwrap().unwrap().to_utf8().unwrap() == "v1111");
-        let r2 = db.get_external(b"k2", &ReadOptions::new());
-        assert!(r2.unwrap().unwrap().to_utf8().unwrap() == "v2222");
+	// put new keys and <offset | length> to rocksdb only
+	let wbrocks = WriteBatch::new();
+	for i in 1..10 {
+	    let offset: u64 = (offsets[i-1] + 24 + 5).try_into().unwrap();
+	    let len: u64 = 5;
+
+	    let loc: [u8; 16] = unsafe {
+		mem::transmute([offset, len])
+	    };
+	    println!("{:?}", &loc);
+	    
+	    wbrocks.put(
+		format!("wotr_key{:04}", i).as_bytes(),
+		&loc,
+	    )
+		.expect("");
+	}
+	db.write(&wbrocks).unwrap();
+
+	// read back original keys
+	for i in 1..10 {
+	    let r = db.get_external(format!("k{:04}", i).as_bytes(), &ReadOptions::new());
+            assert!(r.unwrap().unwrap().to_utf8().unwrap() == format!("v{:04}", i));
+	}
+
+	// read back keys which directly reference the values in wotr
+	for i in 1..10 {
+	    let r = db.get_p_external(format!("wotr_key{:04}", i).as_bytes(), &ReadOptions::new());
+	    assert!(r.unwrap().unwrap().to_utf8().unwrap() == format!("v{:04}", i));
+	}
     }
 
     #[test]    
