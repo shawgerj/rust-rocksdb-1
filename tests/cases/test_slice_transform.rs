@@ -68,7 +68,7 @@ fn test_slice_transform() {
         assert_eq!(v.as_slice(), &*db.get(k).unwrap().unwrap());
     }
 
-    let mut it = db.iter();
+    let mut it = db.iter(false);
 
     let invalid_seeks = vec![
         b"key_".to_vec(),

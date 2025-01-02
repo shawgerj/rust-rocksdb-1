@@ -86,7 +86,7 @@ fn test_prefix_extractor_compatibility() {
         db.put_opt(b"k1-7", b"b", &wopts).unwrap();
         db.put_opt(b"k1-8", b"c", &wopts).unwrap();
 
-        let mut iter = db.iter();
+        let mut iter = db.iter(false);
         iter.seek(SeekKey::Key(b"k1-0")).unwrap();
         let mut key_count = 0;
         while iter.valid().unwrap() {

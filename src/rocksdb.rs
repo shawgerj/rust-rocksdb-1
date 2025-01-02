@@ -3452,7 +3452,27 @@ mod test {
         db.put(b"k1", b"v1111").expect("");
         db.put(b"k2", b"v2222").expect("");
         db.put(b"k3", b"v3333").expect("");
-        let mut iter = db.iter();
+        let mut iter = db.iter(false);
+        iter.seek(SeekKey::Start).unwrap();
+        for (k, v) in &mut iter {
+            println!(
+                "Hello {}: {}",
+                str::from_utf8(&*k).unwrap(),
+                str::from_utf8(&*v).unwrap()
+            );
+        }
+    }
+
+    // TODO should fail until we change to putexternal (see above for examples)
+    #[test]
+    fn wotr_iterator_test() {
+        let path = tempdir_with_prefix("_rust_rocksdb_wotriteratortest");
+
+        let db = DB::open_default(path.path().to_str().unwrap()).unwrap();
+        db.put(b"k1", b"v1111").expect("");
+        db.put(b"k2", b"v2222").expect("");
+        db.put(b"k3", b"v3333").expect("");
+        let mut iter = db.iter(true);
         iter.seek(SeekKey::Start).unwrap();
         for (k, v) in &mut iter {
             println!(

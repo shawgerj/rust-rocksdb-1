@@ -768,7 +768,7 @@ fn test_read_options() {
     db.put(b"k3", b"c").unwrap();
 
     let keys = vec![b"k1", b"k2", b"k3"];
-    let mut iter = db.iter_opt(read_opts);
+    let mut iter = db.iter_opt(read_opts, false);
     iter.seek(SeekKey::Key(b"k1")).unwrap();
     let mut key_count = 0;
     while iter.valid().unwrap() {
@@ -791,7 +791,7 @@ fn test_readoptions_lower_bound() {
     let mut read_opts = ReadOptions::new();
     let lower_bound = b"k2".to_vec();
     read_opts.set_iterate_lower_bound(lower_bound);
-    let mut iter = db.iter_opt(read_opts);
+    let mut iter = db.iter_opt(read_opts, false);
     iter.seek(SeekKey::Key(b"k3")).unwrap();
     let mut count = 0;
     while iter.valid().unwrap() {
@@ -872,7 +872,7 @@ fn test_vector_memtable_factory_options() {
     assert_eq!(db.get(b"k2").unwrap().unwrap(), b"v2");
     db.flush(true).unwrap();
 
-    let mut iter = db.iter();
+    let mut iter = db.iter(false);
     iter.seek(SeekKey::Start).unwrap();
     assert!(iter.valid().unwrap());
     assert_eq!(iter.key(), b"k1");

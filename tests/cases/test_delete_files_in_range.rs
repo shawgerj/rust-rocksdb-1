@@ -60,7 +60,7 @@ fn test_delete_files_in_range_with_iter() {
     let db = initial_data(path_str);
 
     // construct iterator before DeleteFilesInRange
-    let mut iter = db.iter();
+    let mut iter = db.iter(false);
 
     // delete sst2
     db.delete_files_in_range(b"key2", b"key7", false).unwrap();
@@ -88,7 +88,7 @@ fn test_delete_files_in_range_with_snap() {
     // delete sst2
     db.delete_files_in_range(b"key2", b"key7", false).unwrap();
 
-    let mut iter = snap.iter();
+    let mut iter = snap.iter(false);
     assert!(iter.seek(SeekKey::Start).unwrap());
 
     let mut count = 0;
@@ -158,7 +158,7 @@ fn test_delete_files_in_range_with_delete_range() {
     // we should have only keys 4 and 5.
     db.compact_range(None, None);
 
-    let mut it = db.iter();
+    let mut it = db.iter(false);
     it.seek(SeekKey::Start).unwrap();
     assert!(it.valid().unwrap());
     assert_eq!(it.key(), b"4");
@@ -185,7 +185,7 @@ fn test_delete_files_in_ranges() {
     db.delete_files_in_ranges_cf(cf, &ranges, false).unwrap();
 
     // Check that ["key0", "key5"] have been deleted, but ["key6", "key8"] still exist.
-    let mut iter = db.iter();
+    let mut iter = db.iter(false);
     iter.seek(SeekKey::Start).unwrap();
     for i in 6..9 {
         assert!(iter.valid().unwrap());
@@ -198,6 +198,6 @@ fn test_delete_files_in_ranges() {
     // Delete the last file.
     let ranges = vec![Range::new(b"key6", b"key8")];
     db.delete_files_in_ranges_cf(cf, &ranges, true).unwrap();
-    let mut iter = db.iter();
+    let mut iter = db.iter(false);
     assert!(!iter.seek(SeekKey::Start).unwrap());
 }

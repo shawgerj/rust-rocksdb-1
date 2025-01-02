@@ -281,7 +281,7 @@ fn gen_sst_from_cf(opt: ColumnFamilyOptions, db: &DB, cf: &CFHandle, path: &str)
     let env_opt = EnvOptions::new();
     let mut writer = SstFileWriter::new_cf(env_opt, opt, cf);
     writer.open(path).unwrap();
-    let mut iter = db.iter_cf(cf);
+    let mut iter = db.iter_cf(cf, false);
     iter.seek(SeekKey::Start).unwrap();
     while iter.valid().unwrap() {
         writer.put(iter.key(), iter.value()).unwrap();

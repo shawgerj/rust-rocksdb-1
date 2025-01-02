@@ -285,7 +285,7 @@ fn test_table_properties_with_table_filter() {
     let f = BigTableFilter::new(2);
     let mut ropts = ReadOptions::new();
     ropts.set_table_filter::<BigTableFilter>(f);
-    let mut iter = db.iter_opt(ropts);
+    let mut iter = db.iter_opt(ropts, false);
     let key = b"key";
     let key5 = b"key5";
     assert!(iter.seek(SeekKey::from(key.as_ref())).unwrap());
