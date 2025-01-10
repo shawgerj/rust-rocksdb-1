@@ -15,7 +15,7 @@
 use crocksdb_ffi::{
     self, DBBackupEngine, DBCFHandle, DBCache, DBCompressionType, DBEnv, DBInstance, DBMapProperty,
     DBPinnableSlice, DBSequentialFile, DBStatisticsHistogramType, DBStatisticsTickerType,
-    DBTablePropertiesCollection, DBTitanDBOptions, DBWriteBatch, WOTRInstance
+    DBTablePropertiesCollection, DBTitanDBOptions, DBWriteBatch, WOTRInstance, WOTRIterInstance,
 };
 use libc::{self, c_char, c_int, c_void, size_t};
 use librocksdb_sys::DBMemoryAllocator;
@@ -2237,6 +2237,68 @@ impl Drop for DB {
    }
 }
 
+pub struct WOTRIter {
+    inner: *mut WOTRIterInstance,
+}
+
+unsafe impl Send for WOTRIter {}
+unsafe impl Sync for WOTRIter {}
+
+impl WOTRIter {
+    pub fn seek(&self, offset: u64) -> Result<(), String> {
+	unsafe { ffi_try!(wotr_iter_seek(self.inner, offset.try_into().unwrap())); }
+	Ok(())
+    }
+
+    pub fn next(&self) -> Result<(), String> {
+	unsafe { ffi_try!(wotr_iter_next(self.inner)); }
+	Ok(())
+    }
+
+    pub fn valid(&self) -> Result<u32, String> {
+	unsafe {
+	    let valid = ffi_try!(wotr_iter_valid(self.inner)) as u32;
+	    Ok(valid)
+	}
+    }
+
+    pub fn key(&self) -> Result<*mut u8, String> {
+	unsafe {
+	    let key = ffi_try!(wotr_iter_key(self.inner));
+	    Ok(key)
+	}
+    }
+
+    pub fn value(&self) -> Result<*mut u8, String> {
+	unsafe {
+	    let value = ffi_try!(wotr_iter_value(self.inner));
+	    Ok(value)
+	} 
+    }
+
+    pub fn key_size(&self) -> Result<u64, String> {
+	unsafe {
+	    let res = ffi_try!(wotr_iter_key_size(self.inner)) as u64;
+	    Ok(res)
+	}
+    }
+
+    pub fn value_size(&self) -> Result<u64, String> {
+	unsafe {
+	    let res = ffi_try!(wotr_iter_value_size(self.inner)) as u64;
+	    Ok(res)
+	}
+    }
+
+    pub fn position(&self) -> Result<u64, String> {
+	unsafe {
+	    let res = ffi_try!(wotr_iter_position(self.inner)) as u64;
+	    Ok(res)
+	}
+    }
+
+}
+
 pub struct WOTR {
     inner: *mut WOTRInstance,
     logpath: String,
@@ -2270,6 +2332,15 @@ impl WOTR {
         };
         Ok( WOTR { inner: w, logpath: logfile.to_owned() } )
     }
+
+    pub fn wotr_iter_init(&self) -> Result<WOTRIter, String> {
+	let wotriter = {
+	    unsafe {
+		ffi_try!(wotr_iter_init(self.inner))
+	    }
+	};
+	Ok( WOTRIter { inner: wotriter } )
+    }
 }
 
 impl Drop for WOTR {
@@ -2279,7 +2350,6 @@ impl Drop for WOTR {
         }
     }
 }
-
 
 impl Writable for WriteBatch {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<(), String> {
@@ -3222,6 +3292,63 @@ mod test {
 	for i in 1..10 {
 	    let r = db.get_p_external(format!("wotr_key{:04}", i).as_bytes(), &ReadOptions::new());
 	    assert!(r.unwrap().unwrap().to_utf8().unwrap() == format!("v{:04}", i));
+	}
+    }
+
+    #[test]
+    fn test_wotr_rocksdb_and_log_iterator() {
+        let path = tempdir_with_prefix("_rust_rocksdb_wotr_and_log_iterator");
+        let pathstr = path.path().to_str().unwrap();
+        let db = DB::open_default(pathstr).unwrap();
+
+        let logpath = setup_wotr_logpath(&path, "wotrlog_test_log_iterator");
+        let w = WOTR::wotr_init(&logpath).unwrap();
+        assert!(db.set_wotr(&w, false).is_ok());
+
+        let wb = WriteBatch::new();
+
+	// put key-value pairs to db and wotr
+	for i in 1..10 {
+            wb.put(
+                format!("k{:04}", i).as_bytes(),
+                format!("v{:04}", i).as_bytes(),
+            )
+		.expect("");
+        }
+ 
+        let offsets = db.write_wotr(&wb, &WriteOptions::new()).unwrap();
+        assert_eq!(offsets.len(), 9);
+
+	// read back original keys
+	for i in 1..10 {
+	    let r = db.get_external(format!("k{:04}", i).as_bytes(), &ReadOptions::new());
+            assert!(r.unwrap().unwrap().to_utf8().unwrap() == format!("v{:04}", i));
+	}
+
+	// read back using wotr log iterator
+	let iter = w.wotr_iter_init().unwrap();
+	let _ = iter.seek(0);
+	let mut iter_keys = Vec::new();
+	let mut iter_vals = Vec::new();
+	while (iter.valid().unwrap() > 0) {
+	    let k = unsafe {
+		slice::from_raw_parts(iter.key().unwrap(), iter.key_size().unwrap() as usize)
+	    };
+	    let v = unsafe {
+		slice::from_raw_parts(iter.value().unwrap(), iter.value_size().unwrap() as usize)
+	    };
+
+	    // to_vec() copies the slice, which is what we want/
+	    // the original slice is no longer valid after iter.next()
+	    iter_keys.push(k.to_vec());
+	    iter_vals.push(v.to_vec());
+	    let _ = iter.next();
+	}
+	for i in 1..10 {
+	    let key = &iter_keys[i-1];
+	    let val = &iter_vals[i-1];
+	    assert!(key == format!("k{:04}", i).as_bytes());
+	    assert!(val == format!("v{:04}", i).as_bytes());
 	}
     }
 
