@@ -21,7 +21,7 @@ extern crate tempfile;
 use std::ffi::CStr;
 use std::fmt;
 
-use libc::{c_char, c_double, c_int, c_uchar, c_void, size_t};
+use libc::{c_char, c_double, c_int, c_uchar, c_void, size_t, ssize_t};
 
 // FFI-safe opaque types.
 //
@@ -2823,6 +2823,15 @@ extern "C" {
         logfile: *const c_char,
         errptr: *mut *mut c_char
     ) -> *mut WOTRInstance;
+    pub fn wotr_write_entry(
+	w: *mut WOTRInstance,
+	key: *const u8,
+	key_size: size_t,
+	value: *const u8,
+	value_size: size_t,
+	cfid: u32,
+	errptr: *mut *mut c_char
+    ) -> ssize_t;
     pub fn wotr_close(w: *mut WOTRInstance);
     pub fn wotr_iter_init(
 	w: *mut WOTRInstance,

@@ -2325,21 +2325,30 @@ impl WOTR {
             }
         };
 
-        let w = {
-            unsafe {
-                ffi_try!(wotr_open(logfile_path.as_ptr()))
-            }
+        let w = unsafe {
+            ffi_try!(wotr_open(logfile_path.as_ptr()))
         };
         Ok( WOTR { inner: w, logpath: logfile.to_owned() } )
     }
 
     pub fn wotr_iter_init(&self) -> Result<WOTRIter, String> {
-	let wotriter = {
-	    unsafe {
-		ffi_try!(wotr_iter_init(self.inner))
-	    }
+	let wotriter = unsafe {
+	    ffi_try!(wotr_iter_init(self.inner))
 	};
 	Ok( WOTRIter { inner: wotriter } )
+    }
+
+    pub fn write_entry(&self, key: &[u8], value: &[u8], cfid: u32) -> Result<isize, String> {
+	let res = unsafe {
+	    ffi_try!(wotr_write_entry(
+		self.inner,
+		key.as_ptr(),
+		key.len() as size_t,
+		value.as_ptr(),
+		value.len() as size_t,
+		cfid))
+	};
+	Ok(res)
     }
 }
 

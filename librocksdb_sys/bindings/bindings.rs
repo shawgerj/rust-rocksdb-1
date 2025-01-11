@@ -6523,6 +6523,16 @@ extern "C" {
     pub fn wotr_write(w: *mut wotr_t, logdata: *const libc::c_char, len: usize) -> isize;
 }
 extern "C" {
+    pub fn wotr_write_entry(
+        w: *mut wotr_t,
+        key: *const libc::c_char,
+        key_size: usize,
+        value: *const libc::c_char,
+        value_size: usize,
+        cfid: u32,
+    ) -> isize;
+}
+extern "C" {
     pub fn wotr_get(
         w: *mut wotr_t,
         offset: usize,
