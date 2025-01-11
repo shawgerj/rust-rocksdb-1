@@ -6555,6 +6555,9 @@ extern "C" {
     pub fn wotr_sync(w: *mut wotr_t) -> libc::c_int;
 }
 extern "C" {
+    pub fn wotr_deallocate(w: *mut wotr_t, start: usize, length: usize) -> libc::c_int;
+}
+extern "C" {
     pub fn wotr_close(w: *mut wotr_t);
 }
 extern "C" {

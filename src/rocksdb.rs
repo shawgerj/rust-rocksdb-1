@@ -2350,6 +2350,20 @@ impl WOTR {
 	};
 	Ok(res)
     }
+
+    pub fn deallocate(&self, start: size_t, length: size_t) -> Result<(), String> {
+	unsafe {
+	    ffi_try!(wotr_deallocate(self.inner, start, length))
+	};
+	Ok(())
+    }
+
+    pub fn sync(&self) -> Result<(), String> {
+	unsafe {
+	    ffi_try!(wotr_sync(self.inner))
+	};
+	Ok(())
+    }
 }
 
 impl Drop for WOTR {

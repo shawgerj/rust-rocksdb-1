@@ -2832,6 +2832,16 @@ extern "C" {
 	cfid: u32,
 	errptr: *mut *mut c_char
     ) -> ssize_t;
+    pub fn wotr_sync(
+	w: *mut WOTRInstance,
+	errptr: *mut *mut c_char
+    ) -> u32;
+    pub fn wotr_deallocate(
+	w: *mut WOTRInstance,
+	start: size_t,
+	length: size_t,
+	errptr: *mut *mut c_char
+    ) -> u32;	
     pub fn wotr_close(w: *mut WOTRInstance);
     pub fn wotr_iter_init(
 	w: *mut WOTRInstance,
