@@ -2297,6 +2297,13 @@ impl WOTRIter {
 	}
     }
 
+    pub fn get_cfid(&self) -> Result<u32, String> {
+	unsafe {
+	    let res = ffi_try!(wotr_iter_get_cfid(self.inner));
+	    Ok(res)
+	}
+    }
+
 }
 
 pub struct WOTR {

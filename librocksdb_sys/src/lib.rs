@@ -2876,6 +2876,10 @@ extern "C" {
 	w: *mut WOTRIterInstance,
 	err: *mut *mut c_char
     ) -> u64;
+    pub fn wotr_iter_get_cfid(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    ) -> u32;
     pub fn wotr_iter_position(
 	w: *mut WOTRIterInstance,
 	err: *mut *mut c_char
