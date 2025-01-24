@@ -21,7 +21,7 @@ extern crate tempfile;
 use std::ffi::CStr;
 use std::fmt;
 
-use libc::{c_char, c_double, c_int, c_uchar, c_void, size_t};
+use libc::{c_char, c_double, c_int, c_uchar, c_void, size_t, ssize_t};
 
 // FFI-safe opaque types.
 //
@@ -51,6 +51,8 @@ pub struct ColumnFamilyDescriptor(c_void);
 pub struct DBInstance(c_void);
 #[repr(C)]
 pub struct WOTRInstance(c_void);
+#[repr(C)]
+pub struct WOTRIterInstance(c_void);
 #[repr(C)]
 pub struct WOTROffset(c_void);
 #[repr(C)]
@@ -2821,31 +2823,68 @@ extern "C" {
         logfile: *const c_char,
         errptr: *mut *mut c_char
     ) -> *mut WOTRInstance;
-    pub fn wotr_register(
-        w: *mut WOTRInstance,
-        pathstr: *const c_char,
-        len: size_t,
+    pub fn wotr_write_entry(
+	w: *mut WOTRInstance,
+	key: *const u8,
+	key_size: size_t,
+	value: *const u8,
+	value_size: size_t,
+	cfid: u32,
+	errptr: *mut *mut c_char
+    ) -> ssize_t;
+    pub fn wotr_sync(
+	w: *mut WOTRInstance,
+	errptr: *mut *mut c_char
     ) -> u32;
-    pub fn wotr_unregister(
-        w: *mut WOTRInstance,
-        ident: u32,
-    );
-    pub fn wotr_numregister(
-        w: *mut WOTRInstance,
-    ) -> u32;
-    pub fn wotr_write(
-        w: *mut WOTRInstance,
-        logdata: *const c_char,
-        len: size_t,
-        flush: c_int,
-    ) -> WOTROffset;
-    pub fn wotr_get(
-        w: *mut WOTRInstance,
-        offset: *const size_t,
-        data: *const c_char,
-        len: *mut size_t,
-    ) -> u32;
+    pub fn wotr_deallocate(
+	w: *mut WOTRInstance,
+	start: size_t,
+	length: size_t,
+	errptr: *mut *mut c_char
+    ) -> u32;	
     pub fn wotr_close(w: *mut WOTRInstance);
+    pub fn wotr_iter_init(
+	w: *mut WOTRInstance,
+	errptr: *mut *mut c_char
+    ) -> *mut WOTRIterInstance;
+    pub fn wotr_iter_seek(
+	w: *mut WOTRIterInstance,
+	offset: size_t,
+	err: *mut *mut c_char
+    );
+    pub fn wotr_iter_next(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    );
+    pub fn wotr_iter_valid(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    ) -> u32;
+    pub fn wotr_iter_key(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    ) -> *mut u8;
+    pub fn wotr_iter_value(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    ) -> *mut u8;
+    pub fn wotr_iter_key_size(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    ) -> u64;
+    pub fn wotr_iter_value_size(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    ) -> u64;
+    pub fn wotr_iter_get_cfid(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    ) -> u32;
+    pub fn wotr_iter_position(
+	w: *mut WOTRIterInstance,
+	err: *mut *mut c_char
+    ) -> u64;
+    
 }
 
 #[cfg(test)]
