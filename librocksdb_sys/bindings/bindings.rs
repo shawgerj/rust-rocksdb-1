@@ -6538,6 +6538,7 @@ extern "C" {
         offset: usize,
         data: *mut *mut libc::c_char,
         len: *mut usize,
+        dataptr: *mut usize,
     ) -> libc::c_int;
 }
 extern "C" {
