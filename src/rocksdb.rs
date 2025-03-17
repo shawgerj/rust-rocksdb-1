@@ -430,6 +430,7 @@ impl<D: Deref<Target = DB>> Snapshot<D> {
     }
 
     pub fn get(&self, key: &[u8]) -> Result<Option<DBVector>, String> {
+        dbg!(&key);
         let mut readopts = ReadOptions::new();
         unsafe {
             readopts.set_snapshot(&self.snap);
@@ -438,6 +439,7 @@ impl<D: Deref<Target = DB>> Snapshot<D> {
     }
 
     pub fn get_cf(&self, cf: &CFHandle, key: &[u8]) -> Result<Option<DBVector>, String> {
+        dbg!(&key);
         let mut readopts = ReadOptions::new();
         unsafe {
             readopts.set_snapshot(&self.snap);
@@ -822,6 +824,7 @@ impl DB {
     }
 
     pub fn write_opt(&self, batch: &WriteBatch, writeopts: &WriteOptions) -> Result<(), String> {
+        dbg!("write");
         unsafe {
             ffi_try!(crocksdb_write(self.inner, writeopts.inner, batch.inner));
         }
@@ -832,6 +835,7 @@ impl DB {
                       batch: &WriteBatch,
                       writeopts: &WriteOptions
     ) -> Result<Vec<size_t>, String> {
+        dbg!("write_wotr");
         let mut offsets: Vec<size_t> = vec![];
         unsafe {
             let mut lenoffsets: size_t = 0;
@@ -856,6 +860,7 @@ impl DB {
         batches: &[WriteBatch],
         writeopts: &WriteOptions,
     ) -> Result<(), String> {
+        dbg!("multib_write");
         unsafe {
             let b: Vec<*mut DBWriteBatch> = batches.iter().map(|w| w.inner).collect();
             if !b.is_empty() {
@@ -875,6 +880,7 @@ impl DB {
         batches: &[WriteBatch],
         writeopts: &WriteOptions,
     ) -> Result<Vec<size_t>, String> {
+        dbg!("multib_write_wotr");
         let mut offsets: Vec<size_t> = vec![];
         unsafe {
             let mut lenoffsets: size_t = 0;
@@ -908,6 +914,7 @@ impl DB {
     }
 
     pub fn get_external(&self, key: &[u8], readopts: &ReadOptions) ->Result<Option<DBVector>, String> {
+        dbg!(&key);
         unsafe {
             let val = ffi_try!(crocksdb_get_external(
                 self.inner,
@@ -924,6 +931,7 @@ impl DB {
     }
 
     pub fn get_p_external(&self, key: &[u8], readopts: &ReadOptions) ->Result<Option<DBVector>, String> {
+        dbg!(&key);
         unsafe {
             let val = ffi_try!(crocksdb_pget_external(
                 self.inner,
@@ -944,6 +952,7 @@ impl DB {
                            key: &[u8],
                            readopts: &ReadOptions
     ) ->Result<Option<DBVector>, String> {
+        dbg!(&key);
         unsafe {
             let val = ffi_try!(crocksdb_get_external_cf(
                 self.inner,
@@ -965,6 +974,7 @@ impl DB {
                            key: &[u8],
                            readopts: &ReadOptions
     ) ->Result<Option<DBVector>, String> {
+        dbg!(&key);
         unsafe {
             let val = ffi_try!(crocksdb_pget_external_cf(
                 self.inner,
@@ -982,6 +992,7 @@ impl DB {
     }
 
     pub fn get_opt(&self, key: &[u8], readopts: &ReadOptions) -> Result<Option<DBVector>, String> {
+        dbg!(&key);
         unsafe {
             let val = ffi_try!(crocksdb_get_pinned(
                 self.inner,
@@ -1007,6 +1018,7 @@ impl DB {
         key: &[u8],
         readopts: &ReadOptions,
     ) -> Result<Option<DBVector>, String> {
+        dbg!(&key);
         unsafe {
             let val = ffi_try!(crocksdb_get_pinned_cf(
                 self.inner,
@@ -1120,15 +1132,18 @@ impl DB {
     }
 
     pub fn iter_opt(&self, opt: ReadOptions, use_wotr: bool) -> DBIterator<&DB> {
+        dbg!("iter_opt {}", use_wotr);
         DBIterator::new(&self, opt, use_wotr)
     }
 
     pub fn iter_cf(&self, cf_handle: &CFHandle, use_wotr: bool) -> DBIterator<&DB> {
+        dbg!("iter_cf {}", use_wotr);
         let opts = ReadOptions::new();
         DBIterator::new_cf(self, cf_handle, opts, use_wotr)
     }
 
     pub fn iter_cf_opt(&self, cf_handle: &CFHandle, opts: ReadOptions, use_wotr: bool) -> DBIterator<&DB> {
+        dbg!("iter_cf_opt {}", use_wotr);
         DBIterator::new_cf(self, cf_handle, opts, use_wotr)
     }
 
@@ -1150,6 +1165,7 @@ impl DB {
         value: &[u8],
         writeopts: &WriteOptions,
     ) -> Result<(), String> {
+        dbg!(&key);
         unsafe {
             ffi_try!(crocksdb_put(
                 self.inner,
@@ -1170,6 +1186,7 @@ impl DB {
         value: &[u8],
         writeopts: &WriteOptions,
     ) -> Result<(), String> {
+        dbg!(&key);
         unsafe {
             let offset = ffi_try!(crocksdb_put_cf(
                 self.inner,
@@ -1188,6 +1205,7 @@ impl DB {
         key: &[u8],
         value: &[u8],
     ) -> Result<size_t, String> {
+        dbg!(&key);
         let mut writeopts = WriteOptions::new();
         writeopts.disable_wal(true);
         unsafe {
@@ -1209,6 +1227,7 @@ impl DB {
         key: &[u8],
         value: &[u8],
     ) -> Result<size_t, String> {
+        dbg!(&key);
         let mut writeopts = WriteOptions::new();
         writeopts.disable_wal(true);
         unsafe {
@@ -2383,6 +2402,7 @@ impl Drop for WOTR {
 
 impl Writable for WriteBatch {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<(), String> {
+        dbg!(&key);
         unsafe {
             crocksdb_ffi::crocksdb_writebatch_put(
                 self.inner,
@@ -2396,6 +2416,7 @@ impl Writable for WriteBatch {
     }
 
     fn put_cf(&self, cf: &CFHandle, key: &[u8], value: &[u8]) -> Result<(), String> {
+        dbg!(&key);
         unsafe {
             crocksdb_ffi::crocksdb_writebatch_put_cf(
                 self.inner,
@@ -2748,6 +2769,7 @@ impl SstFileWriter {
     /// Add key, value to currently opened file
     /// REQUIRES: key is after any previously added key according to comparator.
     pub fn put(&mut self, key: &[u8], val: &[u8]) -> Result<(), String> {
+    dbg!("sst put");
         unsafe {
             ffi_try!(crocksdb_sstfilewriter_put(
                 self.inner,
