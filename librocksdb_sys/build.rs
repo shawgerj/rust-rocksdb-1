@@ -158,6 +158,7 @@ fn build_rocksdb(build: &mut Build) {
 //        .define("CMAKE_BUILD_TYPE", "Release")
         .define("WITH_TESTS", "OFF")
         .define("WITH_TOOLS", "OFF")
+	.define("ROCKSDB_LOGGING", "OFF")
         .build_target("rocksdb")
         .very_verbose(true)
         .build();
