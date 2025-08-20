@@ -3138,6 +3138,7 @@ pub fn set_external_sst_file_global_seq_no(
     }
 }
 
+#[allow(invalid_null_arguments)]
 pub fn load_latest_options(
     dbpath: &str,
     env: &Env,
@@ -3162,6 +3163,7 @@ pub fn load_latest_options(
         if !ok {
             return Ok(None);
         }
+
         let cf_descs_list = slice::from_raw_parts(raw_cf_descs, cf_descs_len);
         let cf_descs = cf_descs_list
             .iter()
