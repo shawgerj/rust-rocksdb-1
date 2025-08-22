@@ -923,22 +923,6 @@ impl DB {
         }
     }
 
-    pub fn get_p_external(&self, key: &[u8], readopts: &ReadOptions) ->Result<Option<DBVector>, String> {
-        unsafe {
-            let val = ffi_try!(crocksdb_pget_external(
-                self.inner,
-                readopts.get_inner(),
-                key.as_ptr(),
-                key.len() as size_t
-            ));
-            if val.is_null() {
-                Ok(None)
-            } else {
-                Ok(Some(DBVector::from_pinned_slice(val)))
-            }
-        }
-    }
-
     pub fn get_external_cf(&self,
                            cf: &CFHandle,
                            key: &[u8],
@@ -960,27 +944,6 @@ impl DB {
         }
     }
     
-    pub fn get_p_external_cf(&self,
-                           cf: &CFHandle,
-                           key: &[u8],
-                           readopts: &ReadOptions
-    ) ->Result<Option<DBVector>, String> {
-        unsafe {
-            let val = ffi_try!(crocksdb_pget_external_cf(
-                self.inner,
-                readopts.get_inner(),
-                cf.inner,
-                key.as_ptr(),
-                key.len() as size_t
-            ));
-            if val.is_null() {
-                Ok(None)
-            } else {
-                Ok(Some(DBVector::from_pinned_slice(val)))
-            }
-        }
-    }
-
     pub fn get_opt(&self, key: &[u8], readopts: &ReadOptions) -> Result<Option<DBVector>, String> {
         unsafe {
             let val = ffi_try!(crocksdb_get_pinned(
@@ -3300,7 +3263,7 @@ mod test {
 	// put new keys and <offset | length> to rocksdb only
 	let wbrocks = WriteBatch::new();
 	for i in 1..10 {
-	    let offset: u64 = (offsets[i-1] + 24 + 5).try_into().unwrap();
+	    let offset: u64 = (offsets[i-1]).try_into().unwrap();
 	    let len: u64 = 5;
 
 	    let loc: [u8; 16] = unsafe {
@@ -3323,7 +3286,7 @@ mod test {
 
 	// read back keys which directly reference the values in wotr
 	for i in 1..10 {
-	    let r = db.get_p_external(format!("wotr_key{:04}", i).as_bytes(), &ReadOptions::new());
+	    let r = db.get_external(format!("wotr_key{:04}", i).as_bytes(), &ReadOptions::new());
 	    assert!(r.unwrap().unwrap().to_utf8().unwrap() == format!("v{:04}", i));
 	}
     }
@@ -3491,8 +3454,8 @@ mod test {
         // write offsets to db2
         let wb_offsets = WriteBatch::new();
 	// vlen + klen + hdr
-	let k1_loc: [u8; 16] = unsafe { mem::transmute([offsets[0], 5 + 2 + 24]) };
-	let k2_loc: [u8; 16] = unsafe { mem::transmute([offsets[1], 5 + 2 + 24]) };
+	let k1_loc: [u8; 16] = unsafe { mem::transmute([offsets[0], 5]) };
+	let k2_loc: [u8; 16] = unsafe { mem::transmute([offsets[1], 5]) };
 
         let _ = wb_offsets.put(b"k1", &k1_loc);
         let _ = wb_offsets.put(b"k2", &k2_loc);

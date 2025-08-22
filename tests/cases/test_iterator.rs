@@ -194,7 +194,7 @@ pub fn test_iterator_wotr() {
 
     let wb = WriteBatch::new();
     for i in 1..5 {
-	let offset: u64 = (offsets[i-1] + 24 + 2).try_into().unwrap();
+	let offset: u64 = (offsets[i-1]).try_into().unwrap();
 	let len: u64 = 5;
 
 	let loc: [u8; 16] = unsafe {
